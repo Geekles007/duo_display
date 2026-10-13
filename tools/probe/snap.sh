@@ -2,14 +2,15 @@
 # Saves the probe's latest JSON line as a labelled fixture, once the geometry
 # has settled (no new line for SETTLE seconds).
 #
-# Usage: tools/probe/snap.sh <closed|open|book|open_rotated> [log-file]
+# Usage: tools/probe/snap.sh <pose_name> [log-file]
+#   e.g. closed, open, book, open_rotated, closed_landscape
 set -euo pipefail
 
-NAME="${1:?usage: snap.sh <closed|open|book|open_rotated> [log-file]}"
-case "$NAME" in
-  closed | open | book | open_rotated) ;;
-  *) echo "error: unknown pose '$NAME'" >&2; exit 2 ;;
-esac
+NAME="${1:?usage: snap.sh <pose_name> [log-file]}"
+if [[ ! "$NAME" =~ ^[a-z][a-z0-9_]*$ ]]; then
+  echo "error: pose name must be snake_case, got '$NAME'" >&2
+  exit 2
+fi
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
 ROOT="$(cd "$HERE/../.." && pwd)"
