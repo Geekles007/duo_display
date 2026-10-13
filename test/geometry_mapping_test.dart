@@ -26,6 +26,17 @@ void main() {
       expect(geometry.isSplitView, isFalse);
     });
 
+    test('closed_landscape: the status column sits bottom right', () {
+      final geometry = fixture('closed_landscape');
+
+      expect(geometry.posture, DuoPosture.closed);
+      expect(geometry.screen, DuoScreen.outer);
+      expect(geometry.cutouts, [
+        const Rect.fromLTWH(611.6666666666666, 399.6666666666667, 37, 37),
+      ]);
+      expect(geometry.statusColumns, [const Rect.fromLTWH(594, 384, 84, 82)]);
+    });
+
     test('open: inner screen, inactive division, inactive inner camera', () {
       final geometry = fixture('open');
 

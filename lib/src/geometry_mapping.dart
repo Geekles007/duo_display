@@ -21,6 +21,12 @@ DuoGeometry geometryFromMessage(DuoGeometryMessage message) {
     (region) => region.kind == RegionKindMessage.occlusion,
   );
 
+  final view = Rect.fromLTWH(
+    0,
+    0,
+    message.viewSize.width,
+    message.viewSize.height,
+  );
   final cutouts = <Rect>[];
   final statusColumns = <Rect>[];
   for (final region in message.regions) {
@@ -28,8 +34,10 @@ DuoGeometry geometryFromMessage(DuoGeometryMessage message) {
     final rect = _rect(region.frame);
     // UIKit gives no way to tell a camera from the status column: region
     // identifiers are opaque. On every captured pose and orientation, the
-    // status column is the occlusion touching the top edge of the view.
-    (rect.top <= _tolerance ? statusColumns : cutouts).add(rect);
+    // status column is anchored to an edge of the view (top right in
+    // portrait, bottom right in landscape on the outer screen) while cameras
+    // sit inside the panel, away from every edge.
+    (_touchesEdge(rect, view) ? statusColumns : cutouts).add(rect);
   }
 
   final angle = message.hingeAngle;
@@ -86,6 +94,12 @@ DuoScreen _screen(
 
 Rect _rect(RectMessage frame) =>
     Rect.fromLTWH(frame.x, frame.y, frame.width, frame.height);
+
+bool _touchesEdge(Rect rect, Rect view) =>
+    rect.left - view.left <= _tolerance ||
+    rect.top - view.top <= _tolerance ||
+    view.right - rect.right <= _tolerance ||
+    view.bottom - rect.bottom <= _tolerance;
 
 bool _sameSize(SizeMessage a, SizeMessage b) =>
     (a.width - b.width).abs() <= _tolerance &&
