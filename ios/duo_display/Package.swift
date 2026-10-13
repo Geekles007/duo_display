@@ -6,7 +6,7 @@ import PackageDescription
 let package = Package(
     name: "duo_display",
     platforms: [
-        .iOS("13.0")
+        .iOS("15.0")
     ],
     products: [
         .library(name: "duo-display", targets: ["duo_display"])

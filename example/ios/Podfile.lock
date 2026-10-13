@@ -1,0 +1,22 @@
+PODS:
+  - duo_display (0.0.1):
+    - Flutter
+  - Flutter (1.0.0)
+
+DEPENDENCIES:
+  - duo_display (from `.symlinks/plugins/duo_display/ios`)
+  - Flutter (from `Flutter`)
+
+EXTERNAL SOURCES:
+  duo_display:
+    :path: ".symlinks/plugins/duo_display/ios"
+  Flutter:
+    :path: Flutter
+
+SPEC CHECKSUMS:
+  duo_display: ceafc90aa6985a170920479f217c59f7d6586500
+  Flutter: cabc95a1d2626b1b06e7179b784ebcf0c0cde467
+
+PODFILE CHECKSUM: a0423ac6c9b4ffe62e74fac8b7af4c533a046c23
+
+COCOAPODS: 1.16.2

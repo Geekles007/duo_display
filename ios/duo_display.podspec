@@ -15,7 +15,7 @@ Bridges the iOS 27.1 hinge and reserved region APIs of the iPhone Duo to Flutter
   s.source           = { :path => '.' }
   s.source_files = 'duo_display/Sources/duo_display/**/*'
   s.dependency 'Flutter'
-  s.platform = :ios, '13.0'
+  s.platform = :ios, '15.0'
 
   # Flutter.framework does not contain a i386 slice.
   s.pod_target_xcconfig = { 'DEFINES_MODULE' => 'YES', 'EXCLUDED_ARCHS[sdk=iphonesimulator*]' => 'i386' }
