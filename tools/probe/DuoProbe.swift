@@ -1,5 +1,6 @@
 // DuoProbe: a single-file UIKit app that dumps the iPhone Duo display geometry
-// as one JSON line per event (layout pass, trait change, hinge update).
+// as one JSON line per event (layout pass, trait change, hinge update), plus a
+// "tick" line whenever regions change with no event at all.
 //
 // Build and run with tools/probe/run.sh. Requires the iOS 27.1 SDK.
 
@@ -10,10 +11,10 @@ private let launchDate = Date()
 // MARK: - JSON model
 
 struct Size: Encodable { let w: Double, h: Double }
-struct Rect: Encodable { let x: Double, y: Double, w: Double, h: Double }
-struct Insets: Encodable { let top: Double, left: Double, bottom: Double, right: Double }
+struct Rect: Encodable, Equatable { let x: Double, y: Double, w: Double, h: Double }
+struct Insets: Encodable, Equatable { let top: Double, left: Double, bottom: Double, right: Double }
 
-struct Region: Encodable {
+struct Region: Encodable, Equatable {
   let kind: String
   /// Opaque: prints "ID()", and the Objective-C identifier only prints its
   /// address. Camera and status column can only be told apart by geometry.
@@ -113,6 +114,8 @@ final class ProbeView: UIView {
   private var pass = 0
   private var hingeUpdates = 0
   private var hinge: Hinge?
+  private var lastRegions: [Region] = []
+  private var sampler: Task<Void, Never>?
   private let encoder: JSONEncoder = {
     let encoder = JSONEncoder()
     encoder.outputFormatting = [.sortedKeys, .withoutEscapingSlashes]
@@ -148,6 +151,21 @@ final class ProbeView: UIView {
 
   required init?(coder: NSCoder) { fatalError("init(coder:) is not supported") }
 
+  override func didMoveToWindow() {
+    super.didMoveToWindow()
+    sampler?.cancel()
+    guard window != nil else { return }
+    // Polls the regions to catch changes that trigger no layout pass, trait
+    // change or hinge update. Only logs when something actually changed.
+    sampler = Task { [weak self] in
+      while !Task.isCancelled {
+        try? await Task.sleep(for: .milliseconds(250))
+        guard let self, currentRegions() != lastRegions else { continue }
+        emit("tick")
+      }
+    }
+  }
+
   override func layoutSubviews() {
     super.layoutSubviews()
     label.frame = bounds
@@ -156,10 +174,24 @@ final class ProbeView: UIView {
     emit("layout")
   }
 
-  private func emit(_ trigger: String) {
-    pass += 1
+  private func currentRegions() -> [Region] {
     let regions = reservedRegions(kind: .division, options: .includeInactive)
       + reservedRegions(kind: .occlusion, options: .includeInactive)
+    return regions.map { region in
+      Region(
+        kind: region.kind == .division ? "division" : "occlusion",
+        id: region.id.description,
+        active: region.isActive,
+        frame: Rect(region.frame),
+        margins: Insets(region.margins)
+      )
+    }
+  }
+
+  private func emit(_ trigger: String) {
+    pass += 1
+    let regions = currentRegions()
+    lastRegions = regions
     let scene = window?.windowScene
     let sample = Sample(
       pass: pass,
@@ -180,15 +212,7 @@ final class ProbeView: UIView {
       hinge: hinge,
       hingeUpdates: hingeUpdates,
       regionCount: regions.count,
-      regions: regions.map { region in
-        Region(
-          kind: region.kind == .division ? "division" : "occlusion",
-          id: region.id.description,
-          active: region.isActive,
-          frame: Rect(region.frame),
-          margins: Insets(region.margins)
-        )
-      }
+      regions: regions
     )
     guard var line = try? encoder.encode(sample) else { return }
     line.append(0x0A)
