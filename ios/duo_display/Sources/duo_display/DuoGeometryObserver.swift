@@ -19,10 +19,13 @@ final class DuoGeometryObserver: UIView {
   /// hierarchy that has a hinge.
   private(set) var hasHinge = false
 
-  /// Transitions emit bursts of intermediate states (regions of the previous
-  /// screen, provisional status column, hinge updates every ~50 ms while the
-  /// device folds). Geometry is only read once nothing changed for this long.
-  private static let settleDelay: Duration = .milliseconds(150)
+  /// Waits before each read, counted from the last event. Transitions emit
+  /// bursts of intermediate states (regions of the previous screen,
+  /// provisional status column, hinge updates every ~50 ms while the device
+  /// folds), so the first read waits until nothing changed for 150 ms. Some
+  /// regions still change later without any event this view receives, so a
+  /// second read follows one second after the last event.
+  private static let readDelays: [Duration] = [.milliseconds(150), .milliseconds(850)]
 
   private var hinge: UIHinge?
   private var settleTask: Task<Void, Never>?
@@ -77,15 +80,25 @@ final class DuoGeometryObserver: UIView {
     scheduleRead()
   }
 
+  override func safeAreaInsetsDidChange() {
+    super.safeAreaInsetsDidChange()
+    // After a screen switch, the status column appears with a safe area
+    // update that usually brings no layout pass to this view: its bounds do
+    // not change.
+    scheduleRead()
+  }
+
   private func scheduleRead() {
     settleTask?.cancel()
     settleTask = Task { [weak self] in
-      do {
-        try await Task.sleep(for: DuoGeometryObserver.settleDelay)
-      } catch {
-        return
+      for delay in DuoGeometryObserver.readDelays {
+        do {
+          try await Task.sleep(for: delay)
+        } catch {
+          return
+        }
+        self?.read()
       }
-      self?.read()
     }
   }
 
