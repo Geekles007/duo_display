@@ -1,0 +1,94 @@
+{
+    "hinge": {
+        "angleDeg": 180,
+        "angleRad": 3.141592653589793,
+        "status": "fullyOpen"
+    },
+    "hingeUpdates": 4,
+    "horizontalSizeClass": "regular",
+    "interfaceOrientation": "portraitUpsideDown",
+    "mainScreenBounds": {
+        "h": 678,
+        "w": 466
+    },
+    "pass": 14,
+    "regionCount": 3,
+    "regions": [
+        {
+            "active": false,
+            "frame": {
+                "h": 40,
+                "w": 669,
+                "x": 0,
+                "y": 455.5
+            },
+            "id": "ID()",
+            "kind": "division",
+            "margins": {
+                "bottom": 20,
+                "left": 0,
+                "right": 0,
+                "top": 20
+            }
+        },
+        {
+            "active": false,
+            "frame": {
+                "h": 58,
+                "w": 37,
+                "x": 611,
+                "y": 677.3333333333334
+            },
+            "id": "ID()",
+            "kind": "occlusion",
+            "margins": {
+                "bottom": 0,
+                "left": 0,
+                "right": 0,
+                "top": 0
+            }
+        },
+        {
+            "active": true,
+            "frame": {
+                "h": 82,
+                "w": 134,
+                "x": 535,
+                "y": 0
+            },
+            "id": "ID()",
+            "kind": "occlusion",
+            "margins": {
+                "bottom": 0,
+                "left": 0,
+                "right": 0,
+                "top": 0
+            }
+        }
+    ],
+    "safeArea": {
+        "bottom": 34,
+        "left": 0,
+        "right": 0,
+        "top": 82
+    },
+    "sceneScreenBounds": {
+        "h": 951,
+        "w": 669
+    },
+    "sceneScreenScale": 3,
+    "t": 328.6087689399719,
+    "trigger": "layout",
+    "verticalBarEdge": "unspecified",
+    "verticalSizeClass": "regular",
+    "viewBounds": {
+        "h": 951,
+        "w": 669
+    },
+    "window": {
+        "h": 951,
+        "w": 669,
+        "x": 0,
+        "y": 0
+    }
+}

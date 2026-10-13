@@ -1,0 +1,77 @@
+{
+    "hinge": {
+        "angleDeg": 0,
+        "angleRad": 0,
+        "status": "closed"
+    },
+    "hingeUpdates": 13,
+    "horizontalSizeClass": "compact",
+    "interfaceOrientation": "portrait",
+    "mainScreenBounds": {
+        "h": 678,
+        "w": 466
+    },
+    "pass": 51,
+    "regionCount": 2,
+    "regions": [
+        {
+            "active": true,
+            "frame": {
+                "h": 37,
+                "w": 37,
+                "x": 399.6666666666667,
+                "y": 29.333333333333332
+            },
+            "id": "ID()",
+            "kind": "occlusion",
+            "margins": {
+                "bottom": 0,
+                "left": 0,
+                "right": 0,
+                "top": 0
+            }
+        },
+        {
+            "active": true,
+            "frame": {
+                "h": 170,
+                "w": 84,
+                "x": 382,
+                "y": 0
+            },
+            "id": "ID()",
+            "kind": "occlusion",
+            "margins": {
+                "bottom": 0,
+                "left": 0,
+                "right": 0,
+                "top": 0
+            }
+        }
+    ],
+    "safeArea": {
+        "bottom": 34,
+        "left": 0,
+        "right": 84,
+        "top": 0
+    },
+    "sceneScreenBounds": {
+        "h": 678,
+        "w": 466
+    },
+    "sceneScreenScale": 3,
+    "t": 122.25719594955444,
+    "trigger": "layout",
+    "verticalBarEdge": "trailing",
+    "verticalSizeClass": "regular",
+    "viewBounds": {
+        "h": 678,
+        "w": 466
+    },
+    "window": {
+        "h": 678,
+        "w": 466,
+        "x": 0,
+        "y": 0
+    }
+}
