@@ -25,6 +25,27 @@ const _portraitBookHinge = DisplayFeature(
 const _firstKey = Key('first');
 const _secondKey = Key('second');
 
+/// Counts how many times it is mounted.
+class _CountsMounts extends StatefulWidget {
+  const _CountsMounts(this.onMount);
+
+  final VoidCallback onMount;
+
+  @override
+  State<_CountsMounts> createState() => _CountsMountsState();
+}
+
+class _CountsMountsState extends State<_CountsMounts> {
+  @override
+  void initState() {
+    super.initState();
+    widget.onMount();
+  }
+
+  @override
+  Widget build(BuildContext context) => const SizedBox.expand();
+}
+
 void main() {
   void setView(WidgetTester tester, Size size) {
     tester.view
@@ -256,5 +277,31 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(tester.getRect(find.byKey(_secondKey)).left, 495.5);
+  });
+
+  testWidgets('first keeps its state when the split changes', (tester) async {
+    setView(tester, _landscape);
+    var mounts = 0;
+    Widget pose(String fixture) => MediaQuery(
+      data: MediaQueryData(
+        size: _landscape,
+        displayFeatures: features(fixture),
+      ),
+      child: Directionality(
+        textDirection: TextDirection.ltr,
+        child: DuoLayoutBuilder(
+          builder: (context, layout) => layout.place(
+            first: _CountsMounts(() => mounts++),
+            second: const SizedBox(),
+          ),
+        ),
+      ),
+    );
+
+    await tester.pumpWidget(pose('book'));
+    await tester.pumpWidget(pose('open'));
+    await tester.pumpWidget(pose('book'));
+
+    expect(mounts, 1);
   });
 }

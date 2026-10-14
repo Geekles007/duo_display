@@ -110,12 +110,16 @@ class DuoLayout {
   /// When not split, shows [first] over the whole area and never builds
   /// [second].
   Widget place({required Widget first, required Widget second}) {
+    // Unbounded constraints leave no area to position panes in.
+    if (!this.first.isFinite) return first;
     final secondPane = this.second;
-    if (secondPane == null) return first;
+    // The same tree shape whether split or not, so that [first] keeps its
+    // state (scroll position, focus, controllers) when the split changes.
     return Stack(
       children: [
         Positioned.fromRect(rect: this.first, child: first),
-        Positioned.fromRect(rect: secondPane, child: second),
+        if (secondPane != null)
+          Positioned.fromRect(rect: secondPane, child: second),
       ],
     );
   }
