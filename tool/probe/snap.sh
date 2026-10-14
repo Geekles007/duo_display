@@ -2,7 +2,7 @@
 # Saves the probe's latest JSON line as a labelled fixture, once the geometry
 # has settled (no new line for SETTLE seconds).
 #
-# Usage: tools/probe/snap.sh <pose_name> [log-file]
+# Usage: tool/probe/snap.sh <pose_name> [log-file]
 #   e.g. closed, open, book, open_rotated, closed_landscape
 set -euo pipefail
 

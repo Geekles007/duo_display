@@ -28,5 +28,5 @@ migrate_working_dir/
 /coverage/
 
 # DuoProbe build output and session logs
-tools/probe/build/
-tools/probe/out/
+tool/probe/build/
+tool/probe/out/

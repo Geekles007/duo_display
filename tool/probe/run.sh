@@ -2,7 +2,7 @@
 # Builds DuoProbe against the iOS 27.1 simulator SDK, checks the SDK stamp,
 # then installs and launches it on the Duo simulator, streaming its stdout.
 #
-# Usage: tools/probe/run.sh [log-file]
+# Usage: tool/probe/run.sh [log-file]
 #   DEVICE=<name or UDID>   simulator to use (default: Duo-27.1)
 set -euo pipefail
 

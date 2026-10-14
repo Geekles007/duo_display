@@ -2,7 +2,7 @@
 // as one JSON line per event (layout pass, trait change, hinge update), plus a
 // "tick" line whenever regions change with no event at all.
 //
-// Build and run with tools/probe/run.sh. Requires the iOS 27.1 SDK.
+// Build and run with tool/probe/run.sh. Requires the iOS 27.1 SDK.
 
 import UIKit
 
