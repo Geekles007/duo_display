@@ -116,7 +116,10 @@ final class ProbeView: UIView {
   private var hinge: Hinge?
   private var lastRegions: [Region] = []
   private var sampler: Task<Void, Never>?
-  private let vsync = VsyncMeter()
+  /// Only with DUOPROBE_VSYNC=1 (run.sh: VSYNC=1): its line every second
+  /// would keep snap.sh from ever seeing a settled log.
+  private let vsync = ProcessInfo.processInfo.environment["DUOPROBE_VSYNC"] == "1"
+    ? VsyncMeter() : nil
   private let encoder: JSONEncoder = {
     let encoder = JSONEncoder()
     encoder.outputFormatting = [.sortedKeys, .withoutEscapingSlashes]
@@ -198,7 +201,7 @@ final class ProbeView: UIView {
   }
 
   private func emit(_ trigger: String) {
-    if let scene = window?.windowScene { vsync.follow(scene) }
+    if let scene = window?.windowScene { vsync?.follow(scene) }
     pass += 1
     let regions = currentRegions()
     lastRegions = regions
@@ -237,7 +240,8 @@ final class ProbeView: UIView {
 /// Flutter engine creates its own (`CADisplayLink(target:selector:)`, bound to
 /// the main screen) and of one from `UIWindowScene.displayLink`, which iOS 27
 /// retargets when the scene moves between displays. Logged as "vsync {...}"
-/// lines, which snap.sh ignores.
+/// lines that snap.sh skips; enabled with DUOPROBE_VSYNC=1 only, since a line
+/// every second would keep snap.sh from ever seeing a settled log.
 @MainActor
 final class VsyncMeter: NSObject {
   private var mainTicks = 0

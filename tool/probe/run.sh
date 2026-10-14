@@ -4,6 +4,7 @@
 #
 # Usage: tool/probe/run.sh [log-file]
 #   DEVICE=<name or UDID>   simulator to use (default: Duo-27.1)
+#   VSYNC=1                 also log display link ticks every second
 set -euo pipefail
 
 DEVICE="${DEVICE:-Duo-27.1}"
@@ -74,5 +75,9 @@ echo "SDK stamp OK:"
 otool -l "$APP/DuoProbe" | grep -A4 LC_BUILD_VERSION
 
 xcrun simctl install "$DEVICE" "$APP"
+if [[ "${VSYNC:-0}" == "1" ]]; then
+  # simctl passes SIMCTL_CHILD_* variables to the app, without the prefix.
+  export SIMCTL_CHILD_DUOPROBE_VSYNC=1
+fi
 echo "Streaming JSON lines to $LOG (Ctrl-C to stop)"
 xcrun simctl launch --console-pty --terminate-running-process "$DEVICE" "$BUNDLE_ID" | tee "$LOG"
