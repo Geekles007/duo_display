@@ -69,20 +69,20 @@ class GeometryDisplayFeatures extends StatelessWidget {
     return StreamBuilder<DuoGeometry>(
       stream: geometry,
       builder: (context, snapshot) {
-        final geometry = snapshot.data;
         final mediaQuery = MediaQuery.maybeOf(context);
-        if (geometry == null ||
-            mediaQuery == null ||
-            mediaQuery.displayFeatures.isNotEmpty) {
-          return child;
-        }
-        final features = displayFeaturesOf(
-          geometry,
-          includeCutouts: includeCutouts,
-        );
-        if (features.isEmpty) return child;
+        if (mediaQuery == null) return child;
+        final geometry = snapshot.data;
+        final features = geometry == null
+            ? const <DisplayFeature>[]
+            : displayFeaturesOf(geometry, includeCutouts: includeCutouts);
+        final keep = features.isEmpty || mediaQuery.displayFeatures.isNotEmpty;
+        // Always the same tree shape, with or without display features:
+        // switching between `child` and a MediaQuery around it would tear
+        // the whole app down and rebuild it, losing its state, on each fold.
         return MediaQuery(
-          data: mediaQuery.copyWith(displayFeatures: features),
+          data: keep
+              ? mediaQuery
+              : mediaQuery.copyWith(displayFeatures: features),
           child: child,
         );
       },

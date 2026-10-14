@@ -8,6 +8,7 @@ import 'package:duo_display/src/messages.g.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'helpers/counts_mounts.dart';
 import 'helpers/probe_fixture.dart';
 
 List<DisplayFeature> features(String fixture) => displayFeaturesOf(
@@ -25,27 +26,6 @@ const _portraitBookHinge = DisplayFeature(
 
 const _firstKey = Key('first');
 const _secondKey = Key('second');
-
-/// Counts how many times it is mounted.
-class _CountsMounts extends StatefulWidget {
-  const _CountsMounts(this.onMount);
-
-  final VoidCallback onMount;
-
-  @override
-  State<_CountsMounts> createState() => _CountsMountsState();
-}
-
-class _CountsMountsState extends State<_CountsMounts> {
-  @override
-  void initState() {
-    super.initState();
-    widget.onMount();
-  }
-
-  @override
-  Widget build(BuildContext context) => const SizedBox.expand();
-}
 
 void main() {
   void setView(WidgetTester tester, Size size) {
@@ -292,7 +272,7 @@ void main() {
         textDirection: TextDirection.ltr,
         child: DuoLayoutBuilder(
           builder: (context, layout) => layout.place(
-            first: _CountsMounts(() => mounts++),
+            first: CountsMounts(() => mounts++),
             second: const SizedBox(),
           ),
         ),
