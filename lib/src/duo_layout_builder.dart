@@ -3,8 +3,77 @@ import 'dart:ui' show DisplayFeature, DisplayFeatureState, DisplayFeatureType;
 import 'package:flutter/widgets.dart';
 import 'package:meta/meta.dart';
 
+/// Lays out its subtree from the panes on either side of the hinge.
+///
+/// [builder] receives a [DuoLayout]: two panes when a half-opened hinge (or a
+/// flat one, with [splitWhenFlat]) crosses this widget, a single one
+/// otherwise. Its rectangles are relative to this widget, wherever it sits on
+/// screen.
+///
+/// The hinge comes from `MediaQuery.displayFeatures`. On iOS, place
+/// `DuoDisplayFeatures` above this widget; on Android foldables, Flutter
+/// reports display features itself.
+///
+/// The widget measures where it sits after each frame. The very first frame
+/// assumes the top left corner of the screen: when the widget sits elsewhere
+/// and the hinge is horizontal, that frame splits at the wrong height and the
+/// next one corrects it.
+class DuoLayoutBuilder extends StatefulWidget {
+  /// Creates the builder.
+  const DuoLayoutBuilder({
+    required this.builder,
+    this.splitWhenFlat = false,
+    super.key,
+  });
+
+  /// Builds the subtree from the current layout.
+  final Widget Function(BuildContext context, DuoLayout layout) builder;
+
+  /// Whether a flat hinge also splits the area. Defaults to false: when the
+  /// device is flat, content may span the fold.
+  final bool splitWhenFlat;
+
+  @override
+  State<DuoLayoutBuilder> createState() => _DuoLayoutBuilderState();
+}
+
+class _DuoLayoutBuilderState extends State<DuoLayoutBuilder> {
+  /// A move smaller than this, in logical pixels, does not relayout.
+  static const double _originTolerance = 0.5;
+
+  /// Where this widget sat in the Flutter view at the last measurement.
+  Offset _origin = Offset.zero;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final layout = computeDuoLayout(
+          displayFeatures: MediaQuery.displayFeaturesOf(context),
+          area: _origin & constraints.biggest,
+          textDirection: Directionality.of(context),
+          splitWhenFlat: widget.splitWhenFlat,
+        );
+        WidgetsBinding.instance.addPostFrameCallback((_) => _measureOrigin());
+        return widget.builder(context, layout);
+      },
+    );
+  }
+
+  void _measureOrigin() {
+    if (!mounted) return;
+    final box = context.findRenderObject();
+    if (box is! RenderBox || !box.attached) return;
+    final origin = box.localToGlobal(Offset.zero);
+    if ((origin.dx - _origin.dx).abs() > _originTolerance ||
+        (origin.dy - _origin.dy).abs() > _originTolerance) {
+      setState(() => _origin = origin);
+    }
+  }
+}
+
 /// The panes on either side of the hinge, in logical pixels, relative to the
-/// top left corner of the area being laid out.
+/// top left corner of a [DuoLayoutBuilder].
 @immutable
 class DuoLayout {
   const DuoLayout._single(this.first)
@@ -36,6 +105,20 @@ class DuoLayout {
 
   /// Whether the area is split in two around the hinge.
   bool get isSplit => second != null;
+
+  /// Places [first] and [second] in their panes and leaves the hinge empty.
+  /// When not split, shows [first] over the whole area and never builds
+  /// [second].
+  Widget place({required Widget first, required Widget second}) {
+    final secondPane = this.second;
+    if (secondPane == null) return first;
+    return Stack(
+      children: [
+        Positioned.fromRect(rect: this.first, child: first),
+        Positioned.fromRect(rect: secondPane, child: second),
+      ],
+    );
+  }
 
   @override
   bool operator ==(Object other) =>
