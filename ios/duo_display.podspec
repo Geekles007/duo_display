@@ -4,7 +4,7 @@
 #
 Pod::Spec.new do |s|
   s.name             = 'duo_display'
-  s.version          = '0.1.0'
+  s.version          = '1.0.0'
   s.summary          = 'iPhone Duo foldable geometry for Flutter.'
   s.description      = <<-DESC
 Bridges the iOS 27.1 hinge and reserved region APIs of the iPhone Duo to Flutter.

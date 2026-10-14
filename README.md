@@ -2,7 +2,8 @@
 
 iPhone Duo support for Flutter. The hinge, the posture and the camera cutouts
 of Apple's first foldable are reported through `MediaQuery.displayFeatures`,
-the same way Flutter already reports them on Android foldables.
+the same way Flutter already reports them on Android foldables, and
+`DuoLayoutBuilder` lays out two panes on either side of the hinge.
 
 ![A dialog opening on the left half of the inner screen, next to the hinge](doc/screenshots/book_dialog.png)
 
@@ -108,6 +109,47 @@ one-off queries. Use them from widgets, or after
 Rectangles are in logical pixels, in the Flutter view's coordinate space, like
 everything else in `MediaQuery`.
 
+### Two panes around the hinge
+
+```dart
+DuoLayoutBuilder(
+  builder: (context, layout) => layout.place(
+    first: const ItemList(),
+    second: const ItemDetail(),
+  ),
+)
+```
+
+`DuoLayoutBuilder` hands its builder a `DuoLayout`: two panes, `first` and
+`second`, on either side of the hinge, or a single one (`first`, the whole
+area) when nothing splits it. `place` puts a widget in each pane and leaves
+the hinge empty; when the area is not split, it shows `first` alone and never
+builds `second`. For anything else, use `isSplit`, `axis`, `first`, `second`
+and `hinge` directly.
+
+| iPhone Duo | `DuoLayout` |
+| --- | --- |
+| Closed | One pane: the outer screen has no hinge. |
+| Book, landscape | Side by side, 455.5 pt each, around the 40 pt hinge band. |
+| Book, portrait | Stacked, split at the fold's real height, even under an app bar. |
+| Flat | One pane, or two with `splitWhenFlat: true`. |
+
+- `first` is the leading pane: on the left (on the right with right-to-left
+  text) when the panes sit side by side, at the top when they are stacked.
+- Rectangles are in logical pixels, relative to the builder, wherever it sits
+  on screen.
+- The builder reads `MediaQuery.displayFeatures`. On iOS, `DuoDisplayFeatures`
+  must be above it; on Android foldables, Flutter reports display features
+  itself, so the same code splits there too.
+- It measures where it sits after each frame. The very first frame assumes
+  the top left corner of the screen: when the builder sits elsewhere and the
+  hinge is horizontal, that one frame splits at the wrong height. During page
+  transitions it re-measures every frame until it stops moving. Rotation or
+  scaling by an ancestor is not compensated, and moves that trigger no rebuild
+  are not tracked.
+- Inside a scroll view the constraints are unbounded, so the area never
+  splits.
+
 ## Testing on the simulator
 
 1. Install the iOS 27.1 simulator runtime. Without `-buildVersion`, Xcode 27.1
@@ -128,9 +170,9 @@ everything else in `MediaQuery`.
    Hub presets sometimes stop short of the target, for instance Open at 174°:
    apply them again if the posture looks wrong.
 
-The [example app](example) draws the hinge, cutouts and status columns over a
-list and detail app, and opens dialogs and bottom sheets to show them avoid
-the hinge.
+The [example app](example) shows its list and detail on either side of the
+hinge in Book, draws the hinge, cutouts and status columns over it, and opens
+dialogs and bottom sheets to show them avoid the hinge.
 
 ## Limitations
 
@@ -143,8 +185,15 @@ the hinge.
   the intermediate states iOS emits while the device folds or rotates.
 - A single Flutter view is supported. Add-to-app and multiple views are
   untested.
-- `DuoDisplayFeatures` reports the hinge; laying out your own screens around
-  it is up to you. A layout helper is planned for 1.0.
+
+## Known issues
+
+- On the iPhone Duo simulator, while the inner screen is in use, Flutter apps
+  redraw several seconds after an input when they are otherwise idle: a tap
+  seems ignored, then shows up. A bare Flutter app without duo_display behaves
+  the same, the iPhone 17 Pro simulator (iOS 26.4) does not, and UIKit apps on
+  the iPhone Duo simulator update immediately. Whether real devices are
+  affected is unknown until the iPhone Duo ships.
 
 ## How it works
 
