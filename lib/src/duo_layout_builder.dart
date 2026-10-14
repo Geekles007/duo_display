@@ -92,7 +92,7 @@ class _DuoLayoutBuilderState extends State<DuoLayoutBuilder> {
 /// The panes on either side of the hinge, in logical pixels, relative to the
 /// top left corner of a [DuoLayoutBuilder].
 @immutable
-class DuoLayout {
+final class DuoLayout {
   const DuoLayout._single(this.first)
     : axis = null,
       second = null,
