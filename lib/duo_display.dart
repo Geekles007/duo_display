@@ -2,4 +2,5 @@
 library;
 
 export 'src/duo_display.dart' show DuoDisplay;
+export 'src/duo_display_features.dart' show DuoDisplayFeatures;
 export 'src/duo_geometry.dart';
