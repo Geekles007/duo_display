@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:ui';
 
 import 'package:duo_display/duo_display.dart';
@@ -7,6 +8,7 @@ import 'package:duo_display/src/messages.g.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'helpers/counts_mounts.dart';
 import 'helpers/probe_fixture.dart';
 
 DuoGeometry fixture(String name) => geometryFromMessage(probeFixture(name));
@@ -184,5 +186,45 @@ void main() {
 
     expect(seen.single.type, DisplayFeatureType.hinge);
     expect(seen.single.state, DisplayFeatureState.postureHalfOpened);
+  });
+
+  testWidgets('the app keeps its state as display features come and go', (
+    tester,
+  ) async {
+    final geometry = StreamController<DuoGeometry>();
+    addTearDown(geometry.close);
+    var mounts = 0;
+    var seen = <DisplayFeature>[];
+    await tester.pumpWidget(
+      MediaQuery(
+        data: const MediaQueryData(size: Size(951, 669)),
+        child: GeometryDisplayFeatures(
+          geometry: geometry.stream,
+          includeCutouts: false,
+          child: Builder(
+            builder: (context) {
+              seen = MediaQuery.displayFeaturesOf(context);
+              return CountsMounts(() => mounts++);
+            },
+          ),
+        ),
+      ),
+    );
+
+    // The first geometry adds a hinge; closed without cutouts has no
+    // display feature at all; Book adds the hinge back.
+    for (final (pose, featureCount) in [
+      ('book', 1),
+      ('closed', 0),
+      ('book', 1),
+    ]) {
+      geometry.add(fixture(pose));
+      // The event is delivered in a microtask, then rebuilt on next frame.
+      await tester.pump();
+      await tester.pump();
+      expect(seen, hasLength(featureCount), reason: pose);
+    }
+
+    expect(mounts, 1);
   });
 }
