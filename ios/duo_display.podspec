@@ -9,9 +9,9 @@ Pod::Spec.new do |s|
   s.description      = <<-DESC
 Bridges the iOS 27.1 hinge and reserved region APIs of the iPhone Duo to Flutter.
                        DESC
-  s.homepage         = 'https://github.com/geekles/duo_display'
+  s.homepage         = 'https://github.com/Geekles007/duo_display'
   s.license          = { :file => '../LICENSE' }
-  s.author           = { 'geekles' => 'https://github.com/geekles' }
+  s.author           = { 'geekles' => 'https://github.com/Geekles007' }
   s.source           = { :path => '.' }
   s.source_files = 'duo_display/Sources/duo_display/**/*'
   s.dependency 'Flutter'
