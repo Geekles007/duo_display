@@ -1,13 +1,22 @@
 name: duo_display
-description: "Brings iPhone Duo foldable geometry (posture, hinge, camera cutouts) to Flutter on iOS 27.1, through MediaQuery-style data."
-version: 0.0.1
+description: "iPhone Duo support for Flutter: reports the hinge, posture and camera cutouts of the iOS 27.1 foldable in MediaQuery.displayFeatures."
+version: 0.1.0
 homepage: https://github.com/geekles/duo_display
 repository: https://github.com/geekles/duo_display
 issue_tracker: https://github.com/geekles/duo_display/issues
+topics:
+  - foldable
+  - ios
+  - iphone
+  - display-features
+  - hinge
+screenshots:
+  - description: A dialog opening on one side of the iPhone Duo hinge, in the Book posture.
+    path: doc/screenshots/book_dialog.png
 
 environment:
   sdk: ^3.12.2
-  flutter: '>=3.3.0'
+  flutter: '>=3.44.0'
 
 dependencies:
   flutter:

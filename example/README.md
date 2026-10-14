@@ -1,17 +1,12 @@
-# duo_display_example
+# duo_display example
 
-Demonstrates how to use the duo_display plugin.
+A list and detail app wrapped in `DuoDisplayFeatures`. An overlay paints the
+hinge band (amber), camera cutouts (red) and status columns (blue), with a
+card listing the current `DuoGeometry` and the display features Flutter sees.
+The dialog and bottom sheet buttons show them open on one side of the hinge.
 
-## Getting Started
+Run it on an iPhone Duo simulator with iOS 27.1 (see the package README):
 
-This project is a starting point for a Flutter application.
-
-A few resources to get you started if this is your first Flutter project:
-
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+```sh
+flutter run -d Duo-27.1
+```
