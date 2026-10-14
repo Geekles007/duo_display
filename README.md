@@ -141,14 +141,14 @@ and `hinge` directly.
 - The builder reads `MediaQuery.displayFeatures`. On iOS, `DuoDisplayFeatures`
   must be above it; on Android foldables, Flutter reports display features
   itself, so the same code splits there too.
-- It measures where it sits after each frame. The very first frame assumes
-  the top left corner of the screen: when the builder sits elsewhere and the
-  hinge is horizontal, that one frame splits at the wrong height. During page
-  transitions it re-measures every frame until it stops moving. Rotation or
-  scaling by an ancestor is not compensated, and moves that trigger no rebuild
-  are not tracked.
-- Inside a scroll view the constraints are unbounded, so the area never
-  splits.
+- It measures where it sits after every frame, so it follows page
+  transitions and swipes and lands on the fold once they stop. The very first
+  frame assumes the top left corner of the screen: when the builder sits
+  elsewhere and the hinge is horizontal, that one frame splits at the wrong
+  height. Rotation or scaling by an ancestor is not compensated.
+- In a scrolling list the constraints are unbounded along the scroll axis, so
+  the area never splits. Pages of a `PageView` or `TabBarView` are bounded and
+  split normally.
 
 ## Testing on the simulator
 

@@ -304,4 +304,87 @@ void main() {
 
     expect(mounts, 1);
   });
+
+  /// A builder whose panes are tagged with [_firstKey] and [_secondKey].
+  Widget taggedBuilder() => DuoLayoutBuilder(
+    builder: (context, layout) => layout.place(
+      first: Container(key: _firstKey),
+      second: Container(key: _secondKey),
+    ),
+  );
+
+  void expectOnTheFold(WidgetTester tester) {
+    expect(
+      tester.getRect(find.byKey(_firstKey)).right,
+      moreOrLessEquals(455.5, epsilon: 0.01),
+    );
+    expect(
+      tester.getRect(find.byKey(_secondKey)).left,
+      moreOrLessEquals(495.5, epsilon: 0.01),
+    );
+  }
+
+  testWidgets('settles on the fold after a 120 Hz page transition', (
+    tester,
+  ) async {
+    setView(tester, _landscape);
+    await tester.pumpWidget(
+      MediaQuery(
+        data: MediaQueryData(
+          size: _landscape,
+          displayFeatures: features('book'),
+        ),
+        child: MaterialApp(
+          theme: ThemeData(platform: TargetPlatform.iOS),
+          home: Builder(
+            builder: (context) => TextButton(
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => Scaffold(body: taggedBuilder()),
+                ),
+              ),
+              child: const Text('push'),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('push'));
+    await tester.pumpAndSettle(const Duration(milliseconds: 8));
+
+    expectOnTheFold(tester);
+  });
+
+  testWidgets('settles on the fold after a paused TabBarView swipe', (
+    tester,
+  ) async {
+    setView(tester, _landscape);
+    await tester.pumpWidget(
+      MediaQuery(
+        data: MediaQueryData(
+          size: _landscape,
+          displayFeatures: features('book'),
+        ),
+        child: MaterialApp(
+          home: DefaultTabController(
+            length: 2,
+            child: TabBarView(children: [const SizedBox(), taggedBuilder()]),
+          ),
+        ),
+      ),
+    );
+
+    final gesture = await tester.startGesture(const Offset(850, 300));
+    await gesture.moveBy(const Offset(-500, 0));
+    await tester.pump();
+    // The finger rests for a moment before finishing the swipe.
+    await tester.pump(const Duration(seconds: 1));
+    await gesture.moveBy(const Offset(-300, 0));
+    await tester.pump();
+    await gesture.up();
+    await tester.pumpAndSettle();
+
+    expectOnTheFold(tester);
+  });
 }

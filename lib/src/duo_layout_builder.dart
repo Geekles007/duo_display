@@ -44,6 +44,8 @@ class _DuoLayoutBuilderState extends State<DuoLayoutBuilder> {
   /// Where this widget sat in the Flutter view at the last measurement.
   Offset _origin = Offset.zero;
 
+  bool _measureScheduled = false;
+
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
@@ -54,10 +56,25 @@ class _DuoLayoutBuilderState extends State<DuoLayoutBuilder> {
           textDirection: Directionality.of(context),
           splitWhenFlat: widget.splitWhenFlat,
         );
-        WidgetsBinding.instance.addPostFrameCallback((_) => _measureOrigin());
+        _scheduleMeasure();
         return widget.builder(context, layout);
       },
     );
+  }
+
+  /// Measures after every frame while mounted, not only after this widget
+  /// rebuilds: ancestors can move it (a page transition, a swipe in a
+  /// `TabBarView`) without rebuilding it. A post-frame callback does not
+  /// schedule frames, so this costs nothing while the screen is idle.
+  void _scheduleMeasure() {
+    if (_measureScheduled) return;
+    _measureScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _measureScheduled = false;
+      if (!mounted) return;
+      _measureOrigin();
+      _scheduleMeasure();
+    });
   }
 
   void _measureOrigin() {

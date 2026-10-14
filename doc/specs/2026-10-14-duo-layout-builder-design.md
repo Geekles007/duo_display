@@ -136,14 +136,16 @@ Flutter view, starting at `Offset.zero`.
 1. `build` returns a `LayoutBuilder`. Its callback takes the size from the
    constraints and the origin from the state, computes the `DuoLayout` and
    calls `builder`.
-2. The same callback schedules a post-frame callback. It reads the actual
+2. After every frame while mounted, a post-frame callback reads the actual
    origin with `RenderBox.localToGlobal(Offset.zero)` on the builder's render
-   box. If it differs from the stored origin by more than 0.5 pt, `setState`
-   stores it and the layout is recomputed.
+   box, then re-arms itself. If the origin differs from the stored one by
+   more than 0.5 pt, `setState` stores it and the layout is recomputed.
+   Measuring only after the builder's own rebuilds is not enough: ancestors
+   move it without rebuilding it (page transitions, `TabBarView` swipes).
 3. Dependencies: `MediaQuery.displayFeaturesOf` (only that aspect),
-   `Directionality.of`, the constraints, and the measured origin. When none
-   of them changes, nothing is scheduled again, so the measurement cannot
-   loop.
+   `Directionality.of`, the constraints, and the measured origin. A
+   post-frame callback does not schedule frames, so the measurement costs
+   nothing while the screen is idle and cannot loop.
 
 `localToGlobal` only asserts that the render object is attached, so reading
 it after the frame is safe. The post-frame callback does nothing once the
@@ -155,11 +157,11 @@ Trade-offs, documented in the README:
   origin and the hinge is horizontal (portrait under an app bar), that one
   frame splits at the wrong height, then the next frame is correct. In
   landscape the hinge is vertical and a vertical offset changes nothing.
-- During page transitions the builder re-measures every frame until it stops
-  moving: extra rebuilds for about 300 ms, correct at the end.
+- During page transitions and swipes the builder rebuilds whenever it moves
+  by more than 0.5 pt: extra rebuilds while it moves, correct at the end.
 - Ancestor rotation or scaling is not compensated; only the origin is.
-- Moves that trigger no rebuild (scrolling) are not tracked. Scroll views
-  give unbounded constraints, which never split anyway.
+- Scrolling lists give unbounded constraints along their axis, which never
+  split. `PageView` and `TabBarView` pages are bounded and split.
 
 Rejected: a custom render object that re-checks its position on every paint.
 It has the same first-frame limitation for much more code.
