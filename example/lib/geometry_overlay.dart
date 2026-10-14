@@ -1,3 +1,5 @@
+import 'dart:ui' show DisplayFeature;
+
 import 'package:duo_display/duo_display.dart';
 import 'package:flutter/material.dart';
 
@@ -70,6 +72,7 @@ class _GeometryCard extends StatelessWidget {
         'isSplitView: ${geometry.isSplitView}',
       ],
       'MediaQuery: ${_size(MediaQuery.sizeOf(context))}',
+      'displayFeatures: ${_features(MediaQuery.displayFeaturesOf(context))}',
     ];
     return Card(
       margin: const EdgeInsets.all(12),
@@ -93,6 +96,12 @@ class _GeometryCard extends StatelessWidget {
       ? '–'
       : '${_number(rect.width)}×${_number(rect.height)}'
             '@${_number(rect.left)},${_number(rect.top)}';
+
+  static String _features(List<DisplayFeature> features) => features.isEmpty
+      ? 'none'
+      : features
+            .map((feature) => '${feature.type.name}(${feature.state.name})')
+            .join(', ');
 
   static String _size(Size size) =>
       '${_number(size.width)}×${_number(size.height)}';

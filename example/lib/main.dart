@@ -2,7 +2,9 @@ import 'package:duo_display/duo_display.dart';
 import 'package:duo_display_example/geometry_overlay.dart';
 import 'package:flutter/material.dart';
 
-void main() => runApp(const ExampleApp());
+// DuoDisplayFeatures reports the hinge in MediaQuery.displayFeatures, so the
+// dialogs and bottom sheets below avoid it without any iPhone Duo code.
+void main() => runApp(const DuoDisplayFeatures(child: ExampleApp()));
 
 class ExampleApp extends StatelessWidget {
   const ExampleApp({super.key});
@@ -33,6 +35,11 @@ class ItemListPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Items')),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => showExampleDialog(context),
+        icon: const Icon(Icons.chat_bubble_outline),
+        label: const Text('Dialog'),
+      ),
       body: ListView.builder(
         itemCount: itemCount,
         itemBuilder: (context, index) => ListTile(
@@ -72,6 +79,22 @@ class ItemDetailPage extends StatelessWidget {
                 'Posture: ${snapshot.data?.posture.name ?? 'unknown'}',
                 style: textTheme.bodyLarge,
               ),
+              const SizedBox(height: 24),
+              FilledButton(
+                onPressed: () => showExampleDialog(context),
+                child: const Text('Show dialog'),
+              ),
+              const SizedBox(height: 12),
+              OutlinedButton(
+                onPressed: () => showModalBottomSheet<void>(
+                  context: context,
+                  builder: (_) => const SizedBox(
+                    height: 200,
+                    child: Center(child: Text('Bottom sheet')),
+                  ),
+                ),
+                child: const Text('Show bottom sheet'),
+              ),
             ],
           ),
         ),
@@ -79,3 +102,19 @@ class ItemDetailPage extends StatelessWidget {
     );
   }
 }
+
+Future<void> showExampleDialog(BuildContext context) => showDialog<void>(
+  context: context,
+  builder: (context) => AlertDialog(
+    title: const Text('Dialog'),
+    content: const Text(
+      'On the inner screen, this opens on one side of the hinge.',
+    ),
+    actions: [
+      TextButton(
+        onPressed: () => Navigator.of(context).pop(),
+        child: const Text('Close'),
+      ),
+    ],
+  ),
+);
