@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:ui';
 
 import 'package:duo_display/duo_display.dart';
@@ -328,6 +329,7 @@ void main() {
     tester,
   ) async {
     setView(tester, _landscape);
+    final navigator = GlobalKey<NavigatorState>();
     await tester.pumpWidget(
       MediaQuery(
         data: MediaQueryData(
@@ -335,23 +337,25 @@ void main() {
           displayFeatures: features('book'),
         ),
         child: MaterialApp(
+          navigatorKey: navigator,
           theme: ThemeData(platform: TargetPlatform.iOS),
-          home: Builder(
-            builder: (context) => TextButton(
-              onPressed: () => Navigator.of(context).push(
-                MaterialPageRoute<void>(
-                  builder: (_) => Scaffold(body: taggedBuilder()),
-                ),
-              ),
-              child: const Text('push'),
-            ),
-          ),
+          home: const Scaffold(body: SizedBox.expand()),
         ),
       ),
     );
 
-    await tester.tap(find.text('push'));
-    await tester.pumpAndSettle(const Duration(milliseconds: 8));
+    unawaited(
+      navigator.currentState!.push(
+        MaterialPageRoute<void>(
+          builder: (_) => Scaffold(appBar: AppBar(), body: taggedBuilder()),
+        ),
+      ),
+    );
+    // 120 Hz frames for 2 s, well past the Cupertino transition.
+    for (var i = 0; i < 250; i++) {
+      await tester.pump(const Duration(milliseconds: 8));
+    }
+    expect(tester.binding.hasScheduledFrame, isFalse);
 
     expectOnTheFold(tester);
   });
@@ -386,5 +390,45 @@ void main() {
     await tester.pumpAndSettle();
 
     expectOnTheFold(tester);
+  });
+
+  testWidgets('follows pose and direction through its dependencies', (
+    tester,
+  ) async {
+    setView(tester, _landscape);
+    final pose = ValueNotifier<String>('book');
+    final direction = ValueNotifier<TextDirection>(TextDirection.ltr);
+    addTearDown(pose.dispose);
+    addTearDown(direction.dispose);
+
+    // A single builder instance, as under DuoDisplayFeatures in an app: it
+    // can only update through MediaQuery and Directionality.
+    await tester.pumpWidget(
+      ValueListenableBuilder<String>(
+        valueListenable: pose,
+        builder: (context, fixture, child) => MediaQuery(
+          data: MediaQueryData(
+            size: _landscape,
+            displayFeatures: features(fixture),
+          ),
+          child: ValueListenableBuilder<TextDirection>(
+            valueListenable: direction,
+            builder: (context, textDirection, child) =>
+                Directionality(textDirection: textDirection, child: child!),
+            child: child,
+          ),
+        ),
+        child: taggedBuilder(),
+      ),
+    );
+    expect(tester.getRect(find.byKey(_secondKey)).left, 495.5);
+
+    direction.value = TextDirection.rtl;
+    await tester.pump();
+    expect(tester.getRect(find.byKey(_firstKey)).left, 495.5);
+
+    pose.value = 'open';
+    await tester.pump();
+    expect(find.byKey(_secondKey), findsNothing);
   });
 }
