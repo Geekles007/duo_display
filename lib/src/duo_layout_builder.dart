@@ -15,9 +15,9 @@ import 'package:meta/meta.dart';
 /// reports display features itself.
 ///
 /// The widget measures where it sits after each frame. The very first frame
-/// assumes the top left corner of the screen: when the widget sits elsewhere
-/// and the hinge is horizontal, that frame splits at the wrong height and the
-/// next one corrects it.
+/// assumes the top left corner of the screen: when the widget sits elsewhere,
+/// under an app bar in portrait or next to a navigation rail in landscape,
+/// that frame splits at the wrong place and the next one corrects it.
 class DuoLayoutBuilder extends StatefulWidget {
   /// Creates the builder.
   const DuoLayoutBuilder({

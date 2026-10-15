@@ -144,8 +144,9 @@ and `hinge` directly.
 - It measures where it sits after every frame, so it follows page
   transitions and swipes and lands on the fold once they stop. The very first
   frame assumes the top left corner of the screen: when the builder sits
-  elsewhere and the hinge is horizontal, that one frame splits at the wrong
-  height. Rotation or scaling by an ancestor is not compensated.
+  elsewhere, under an app bar in portrait or next to a navigation rail in
+  landscape, that one frame splits at the wrong place and the next one is
+  correct. Rotation or scaling by an ancestor is not compensated.
 - In a scrolling list the constraints are unbounded along the scroll axis, so
   the area never splits. Pages of a `PageView` or `TabBarView` are bounded and
   split normally.

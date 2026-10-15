@@ -139,6 +139,44 @@ void main() {
     expect(tester.getRect(find.byKey(_secondKey)).top, 495.5);
   });
 
+  testWidgets('corrects its position next to a navigation rail', (
+    tester,
+  ) async {
+    setView(tester, _landscape);
+    await tester.pumpWidget(
+      MediaQuery(
+        data: MediaQueryData(
+          size: _landscape,
+          displayFeatures: features('book'),
+        ),
+        child: Directionality(
+          textDirection: TextDirection.ltr,
+          child: Row(
+            children: [
+              const SizedBox(width: 80),
+              Expanded(
+                child: DuoLayoutBuilder(
+                  builder: (context, layout) => layout.place(
+                    first: Container(key: _firstKey),
+                    second: Container(key: _secondKey),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    // The first frame assumes the builder starts at the left edge.
+    expect(tester.getRect(find.byKey(_firstKey)).right, isNot(455.5));
+
+    await tester.pump();
+
+    expect(tester.getRect(find.byKey(_firstKey)).right, 455.5);
+    expect(tester.getRect(find.byKey(_secondKey)).left, 495.5);
+  });
+
   testWidgets('correct on the first frame at the origin', (tester) async {
     setView(tester, _landscape);
     await tester.pumpWidget(

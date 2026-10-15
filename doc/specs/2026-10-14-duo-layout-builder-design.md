@@ -153,10 +153,10 @@ state is unmounted.
 
 Trade-offs, documented in the README:
 
-- The very first frame uses `Offset.zero`. When the builder is not at the
-  origin and the hinge is horizontal (portrait under an app bar), that one
-  frame splits at the wrong height, then the next frame is correct. In
-  landscape the hinge is vertical and a vertical offset changes nothing.
+- The very first frame uses `Offset.zero`. When the builder is offset across
+  the hinge (portrait under an app bar, landscape next to a navigation rail),
+  that one frame splits at the wrong place, then the next frame is correct.
+  An offset along the hinge (an app bar in landscape) changes nothing.
 - During page transitions and swipes the builder rebuilds whenever it moves
   by more than 0.5 pt: extra rebuilds while it moves, correct at the end.
 - Ancestor rotation or scaling is not compensated; only the origin is.
