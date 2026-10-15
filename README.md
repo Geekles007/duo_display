@@ -134,7 +134,8 @@ the hinge.
 
 ## Limitations
 
-- Tested on the iOS 27.1 simulator only, until the iPhone Duo ships.
+- Tested on the iOS 27.1 simulator only. If you own an iPhone Duo, reports
+  are welcome: [open an issue](https://github.com/Geekles007/duo_display/issues).
 - UIKit's region identifiers are opaque, so cameras and status columns are
   told apart by geometry: a status column touches an edge of the view, a
   camera never does.
