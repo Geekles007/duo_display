@@ -387,7 +387,7 @@ them with `flutter analyze` on every change.
 
 - **Physical-device validation pending.** Tested on the iOS 27.1 simulator
   only. If you own an iPhone Duo,
-  [reports are welcome](https://github.com/Geekles007/duo_display/issues).
+  [reports are welcome](https://github.com/Geekles007/duo_display/issues/3).
 - **Single Flutter view.** Add-to-app and multiple Flutter views are untested.
 - **Geometry update delay.** Updates arrive about 150 ms after the geometry
   settles, which filters out the intermediate states iOS reports during folds
