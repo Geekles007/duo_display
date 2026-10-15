@@ -175,6 +175,22 @@ void main() {
     expect(layout.isSplit, isFalse);
   });
 
+  test('a cutout never splits, even across the whole area', () {
+    // Flutter only allows the unknown state on cutouts.
+    final layout = compute(
+      const [
+        DisplayFeature(
+          bounds: Rect.fromLTWH(455.5, 0, 40, 669),
+          type: DisplayFeatureType.cutout,
+          state: DisplayFeatureState.unknown,
+        ),
+      ],
+      splitWhenFlat: true,
+    );
+
+    expect(layout.isSplit, isFalse);
+  });
+
   test('the first qualifying feature wins', () {
     final layout = compute([
       const DisplayFeature(
