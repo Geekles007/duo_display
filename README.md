@@ -65,6 +65,7 @@ already use:
 | Status bar regions | The areas the system status bar reserves, as a column or a band. |
 | MediaQuery integration | `DuoDisplayFeatures` adds the hinge and cameras to `MediaQuery.displayFeatures`. |
 | Geometry stream | `DuoDisplay.geometry`, a broadcast stream that replays the last geometry to new listeners. |
+| Two-pane layout | `DuoLayoutBuilder` splits an area into two panes on either side of the hinge, in its own coordinates. |
 
 ## Quick Start
 
@@ -166,10 +167,11 @@ Your widgets
 
 ## Usage Examples
 
-duo_display reports geometry; it does not resize or rearrange your screens.
-Widgets that already read `MediaQuery.displayFeatures` adapt on their own:
-dialogs, bottom sheets and menus open on one side of the hinge. Your own
-layouts decide what to do with the hinge, as in the examples below.
+duo_display never rearranges your screens on its own. Widgets that already
+read `MediaQuery.displayFeatures` adapt by themselves: dialogs, bottom sheets
+and menus open on one side of the hinge. For your own screens,
+`DuoLayoutBuilder` (example F) hands you the two panes; examples A to E read
+the underlying information.
 
 ### A. Reading display features
 
@@ -270,6 +272,48 @@ runApp(const DuoDisplayFeatures(includeCutouts: false, child: MyApp()));
 When the device is closed, `cutouts` holds the outer camera (37×37 pt). iOS
 reports the inner camera as inactive, so the inner screen has no cutout.
 
+### F. Laying out two panes around the hinge
+
+```dart
+DuoLayoutBuilder(
+  builder: (context, layout) => layout.place(
+    first: const ItemList(),
+    second: const ItemDetail(),
+  ),
+)
+```
+
+`DuoLayoutBuilder` hands its builder a `DuoLayout`: two panes, `first` and
+`second`, on either side of the hinge, or a single one (`first`, the whole
+area) when nothing splits it. `place` puts a widget in each pane and leaves
+the hinge empty; when the area is not split, it shows `first` alone and never
+builds `second`. `first` keeps its state when the split changes. For anything
+else, use `isSplit`, `axis`, `first`, `second` and `hinge` directly.
+
+| iPhone Duo | `DuoLayout` |
+| --- | --- |
+| Closed | One pane: the outer screen has no hinge. |
+| Book, landscape | Side by side, 455.5 pt each, around the 40 pt hinge band. |
+| Book, portrait | Stacked, split at the fold's real height, even under an app bar. |
+| Flat | One pane, or two with `splitWhenFlat: true`. |
+
+- `first` is the leading pane: on the left (on the right with right-to-left
+  text) when the panes sit side by side, at the top when they are stacked.
+- Rectangles are in logical pixels, relative to the builder, wherever it sits
+  on screen.
+- The builder reads `MediaQuery.displayFeatures`. On iOS, `DuoDisplayFeatures`
+  must be above it; on Android foldables, Flutter reports display features
+  itself, so the same code splits there too.
+- It measures where it sits after every frame, so it follows page
+  transitions and swipes and lands on the fold once they stop. The very first
+  frame assumes the top left corner of the screen: when the builder sits
+  elsewhere, under an app bar in portrait or next to a navigation rail in
+  landscape, that one frame splits at the wrong place and the next one is
+  correct. Rotation or scaling by an ancestor is not compensated.
+- In a scrolling list the constraints are unbounded along the scroll axis, so
+  the area never splits. Pages of a `PageView` or `TabBarView` are bounded and
+  split normally.
+
 ## Understanding Device Postures
 
 | Posture | Description | Display Features |
@@ -348,8 +392,8 @@ them with `flutter analyze` on every change.
 - **Geometry update delay.** Updates arrive about 150 ms after the geometry
   settles, which filters out the intermediate states iOS reports during folds
   and rotations.
-- **No automatic responsive layout.** duo_display reports the hinge; laying
-  out your own screens around it is up to you.
+- **Layout is opt-in.** Only the widgets you lay out with `DuoLayoutBuilder`
+  avoid the hinge; the rest of your screens stay as they are.
 - **Cameras and status bar areas are told apart by geometry.** iOS gives no
   way to identify them: a status bar area touches an edge of the screen, a
   camera never does.
@@ -366,12 +410,15 @@ them with `flutter analyze` on every change.
 The [example app](https://github.com/Geekles007/duo_display/tree/main/example)
 is a list and detail app wrapped in `DuoDisplayFeatures`. It shows:
 
+- `DuoLayoutBuilder` at work: in Book, the list and the selected item sit on
+  either side of the hinge; a switch in the app bar also splits the screen
+  when the device is flat;
 - an overlay that paints the hinge (amber), cameras (red) and status bar
   areas (blue), with a card listing every `DuoGeometry` value and the display
   features Flutter sees;
 - dialog and bottom sheet buttons, to see them open on one side of the hinge.
 
-![The example app in Book posture: a dialog opens on the left of the hinge, and the overlay card lists the geometry](doc/screenshots/book_dialog.png)
+![The example app in Book posture: the list on the left of the hinge, the selected item on the right](doc/screenshots/book_split.png)
 
 Run it on the iPhone Duo simulator:
 
@@ -388,13 +435,10 @@ flutter run -d Duo-27.1
 - `DuoDisplay`: geometry stream, `current()` and `isSupported`.
 - `DuoGeometry`: posture, hinge angle, active screen, hinge band, cutouts,
   status bar areas, vertical bars and split view.
+- `DuoLayoutBuilder`: two panes around the hinge, also on Android foldables.
 
 **Planned**
 
-- A layout helper that splits your screens into two panes around the hinge.
-  It is in review in
-  [pull request #1](https://github.com/Geekles007/duo_display/pull/1), for
-  1.0.0.
 - Physical-device validation, with help from iPhone Duo owners.
 
 **Ideas**
@@ -416,8 +460,8 @@ Contributions are welcome:
 
 To work on the native side, `tool/probe` holds DuoProbe, a single-file UIKit
 app that logs the raw geometry: `tool/probe/run.sh` builds and launches it on
-the simulator, and `tool/probe/snap.sh <pose>` saves the settled geometry as a
-test fixture. Regenerate the channel code with
+the simulator (`VSYNC=1` also logs display link ticks), and
+`tool/probe/snap.sh <pose>` saves the settled geometry as a test fixture. Regenerate the channel code with
 `dart run pigeon --input pigeons/messages.dart`.
 
 ## License

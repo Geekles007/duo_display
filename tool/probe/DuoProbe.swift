@@ -116,12 +116,17 @@ final class ProbeView: UIView {
   private var hinge: Hinge?
   private var lastRegions: [Region] = []
   private var sampler: Task<Void, Never>?
+  /// Only with DUOPROBE_VSYNC=1 (run.sh: VSYNC=1): its line every second
+  /// would keep snap.sh from ever seeing a settled log.
+  private let vsync = ProcessInfo.processInfo.environment["DUOPROBE_VSYNC"] == "1"
+    ? VsyncMeter() : nil
   private let encoder: JSONEncoder = {
     let encoder = JSONEncoder()
     encoder.outputFormatting = [.sortedKeys, .withoutEscapingSlashes]
     return encoder
   }()
   private let label = UILabel()
+  private var taps = 0
 
   override init(frame: CGRect) {
     super.init(frame: frame)
@@ -130,6 +135,8 @@ final class ProbeView: UIView {
     label.textAlignment = .center
     label.textColor = .secondaryLabel
     addSubview(label)
+    // A tap counter, to check how fast the screen reflects input.
+    addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(countTap)))
 
     // The hinge is push-based: UIKit calls the handler with the initial state,
     // then on every change. A nil hinge means the hierarchy has none.
@@ -166,6 +173,11 @@ final class ProbeView: UIView {
     }
   }
 
+  @objc private func countTap() {
+    taps += 1
+    label.text = "DuoProbe: taps \(taps)"
+  }
+
   override func layoutSubviews() {
     super.layoutSubviews()
     label.frame = bounds
@@ -189,6 +201,7 @@ final class ProbeView: UIView {
   }
 
   private func emit(_ trigger: String) {
+    if let scene = window?.windowScene { vsync?.follow(scene) }
     pass += 1
     let regions = currentRegions()
     lastRegions = regions
@@ -218,6 +231,50 @@ final class ProbeView: UIView {
     line.append(0x0A)
     // Unbuffered write, so lines reach the console PTY immediately.
     FileHandle.standardOutput.write(line)
+  }
+}
+
+// MARK: - Vsync meter
+
+/// Counts, every second, the ticks of a display link created the way the
+/// Flutter engine creates its own (`CADisplayLink(target:selector:)`, bound to
+/// the main screen) and of one from `UIWindowScene.displayLink`, which iOS 27
+/// retargets when the scene moves between displays. Logged as "vsync {...}"
+/// lines that snap.sh skips; enabled with DUOPROBE_VSYNC=1 only, since a line
+/// every second would keep snap.sh from ever seeing a settled log.
+@MainActor
+final class VsyncMeter: NSObject {
+  private var mainTicks = 0
+  private var sceneTicks = 0
+  private var sceneLink: CADisplayLink?
+  private weak var scene: UIWindowScene?
+
+  override init() {
+    super.init()
+    CADisplayLink(target: self, selector: #selector(mainTick)).add(to: .main, forMode: .common)
+    Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
+      MainActor.assumeIsolated { self?.report() }
+    }
+  }
+
+  /// Creates the scene display link once the window has a scene.
+  func follow(_ scene: UIWindowScene) {
+    guard scene !== self.scene else { return }
+    self.scene = scene
+    sceneLink?.invalidate()
+    sceneLink = scene.displayLink(target: self, selector: #selector(sceneTick))
+    sceneLink?.add(to: .main, forMode: .common)
+  }
+
+  @objc private func mainTick() { mainTicks += 1 }
+  @objc private func sceneTick() { sceneTicks += 1 }
+
+  private func report() {
+    let size = scene.map { "\(Int($0.screen.bounds.width))x\(Int($0.screen.bounds.height))" } ?? "none"
+    let line = "vsync {\"t\":\(Date().timeIntervalSince(launchDate)),\"main\":\(mainTicks),\"scene\":\(sceneTicks),\"sceneScreen\":\"\(size)\"}\n"
+    FileHandle.standardOutput.write(Data(line.utf8))
+    mainTicks = 0
+    sceneTicks = 0
   }
 }
 

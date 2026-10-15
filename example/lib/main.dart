@@ -26,31 +26,60 @@ class ExampleApp extends StatelessWidget {
   }
 }
 
-class ItemListPage extends StatelessWidget {
+class ItemListPage extends StatefulWidget {
   const ItemListPage({super.key});
 
   static const itemCount = 40;
 
   @override
+  State<ItemListPage> createState() => _ItemListPageState();
+}
+
+class _ItemListPageState extends State<ItemListPage> {
+  int _selected = 0;
+  bool _splitWhenFlat = false;
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Items')),
+      appBar: AppBar(
+        title: const Text('Items'),
+        actions: [
+          const Text('Split when flat'),
+          Switch(
+            value: _splitWhenFlat,
+            onChanged: (value) => setState(() => _splitWhenFlat = value),
+          ),
+          const SizedBox(width: 8),
+        ],
+      ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => showExampleDialog(context),
         icon: const Icon(Icons.chat_bubble_outline),
         label: const Text('Dialog'),
       ),
-      body: ListView.builder(
-        itemCount: itemCount,
-        itemBuilder: (context, index) => ListTile(
-          leading: CircleAvatar(child: Text('${index + 1}')),
-          title: Text('Item ${index + 1}'),
-          subtitle: const Text('Tap to open'),
-          onTap: () => Navigator.of(context).push(
-            MaterialPageRoute<void>(
-              builder: (_) => ItemDetailPage(index: index),
+      // Two panes around the hinge in Book (and when flat, with the switch
+      // on): the list on one side, the selected item on the other.
+      body: DuoLayoutBuilder(
+        splitWhenFlat: _splitWhenFlat,
+        builder: (context, layout) => layout.place(
+          first: ListView.builder(
+            itemCount: ItemListPage.itemCount,
+            itemBuilder: (context, index) => ListTile(
+              leading: CircleAvatar(child: Text('${index + 1}')),
+              title: Text('Item ${index + 1}'),
+              subtitle: Text(layout.isSplit ? 'Tap to show' : 'Tap to open'),
+              selected: layout.isSplit && index == _selected,
+              onTap: () => layout.isSplit
+                  ? setState(() => _selected = index)
+                  : Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => ItemDetailPage(index: index),
+                      ),
+                    ),
             ),
           ),
+          second: ItemDetailView(index: _selected),
         ),
       ),
     );
@@ -64,39 +93,50 @@ class ItemDetailPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
     return Scaffold(
       appBar: AppBar(title: Text('Item ${index + 1}')),
-      body: Center(
-        child: StreamBuilder<DuoGeometry>(
-          stream: DuoDisplay.geometry,
-          builder: (context, snapshot) => Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text('Item ${index + 1}', style: textTheme.headlineMedium),
-              const SizedBox(height: 8),
-              Text(
-                'Posture: ${snapshot.data?.posture.name ?? 'unknown'}',
-                style: textTheme.bodyLarge,
-              ),
-              const SizedBox(height: 24),
-              FilledButton(
-                onPressed: () => showExampleDialog(context),
-                child: const Text('Show dialog'),
-              ),
-              const SizedBox(height: 12),
-              OutlinedButton(
-                onPressed: () => showModalBottomSheet<void>(
-                  context: context,
-                  builder: (_) => const SizedBox(
-                    height: 200,
-                    child: Center(child: Text('Bottom sheet')),
-                  ),
+      body: ItemDetailView(index: index),
+    );
+  }
+}
+
+class ItemDetailView extends StatelessWidget {
+  const ItemDetailView({required this.index, super.key});
+
+  final int index;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    return Center(
+      child: StreamBuilder<DuoGeometry>(
+        stream: DuoDisplay.geometry,
+        builder: (context, snapshot) => Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('Item ${index + 1}', style: textTheme.headlineMedium),
+            const SizedBox(height: 8),
+            Text(
+              'Posture: ${snapshot.data?.posture.name ?? 'unknown'}',
+              style: textTheme.bodyLarge,
+            ),
+            const SizedBox(height: 24),
+            FilledButton(
+              onPressed: () => showExampleDialog(context),
+              child: const Text('Show dialog'),
+            ),
+            const SizedBox(height: 12),
+            OutlinedButton(
+              onPressed: () => showModalBottomSheet<void>(
+                context: context,
+                builder: (_) => const SizedBox(
+                  height: 200,
+                  child: Center(child: Text('Bottom sheet')),
                 ),
-                child: const Text('Show bottom sheet'),
               ),
-            ],
-          ),
+              child: const Text('Show bottom sheet'),
+            ),
+          ],
         ),
       ),
     );
