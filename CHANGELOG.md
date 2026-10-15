@@ -5,6 +5,8 @@
   widget in each. It splits in Book, and when flat only with
   `splitWhenFlat: true`. It reads `MediaQuery.displayFeatures`, so it also
   splits on Android foldables.
+* README rewritten: real simulator screenshots, a quick start, usage
+  examples for every API, a posture table and a roadmap.
 * The API is now stable and follows semantic versioning.
 
 ## 0.1.0
