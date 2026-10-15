@@ -46,21 +46,33 @@ class _DuoLayoutBuilderState extends State<DuoLayoutBuilder> {
 
   bool _measureScheduled = false;
 
+  // The inputs and result of the last build, to tell whether a new origin
+  // changes the panes.
+  List<DisplayFeature> _displayFeatures = const [];
+  Size _size = Size.zero;
+  TextDirection _textDirection = TextDirection.ltr;
+  DuoLayout? _layout;
+
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final layout = computeDuoLayout(
-          displayFeatures: MediaQuery.displayFeaturesOf(context),
-          area: _origin & constraints.biggest,
-          textDirection: Directionality.of(context),
-          splitWhenFlat: widget.splitWhenFlat,
-        );
+        _displayFeatures = MediaQuery.displayFeaturesOf(context);
+        _size = constraints.biggest;
+        _textDirection = Directionality.of(context);
+        final layout = _layout = _compute(_origin);
         _scheduleMeasure();
         return widget.builder(context, layout);
       },
     );
   }
+
+  DuoLayout _compute(Offset origin) => computeDuoLayout(
+    displayFeatures: _displayFeatures,
+    area: origin & _size,
+    textDirection: _textDirection,
+    splitWhenFlat: widget.splitWhenFlat,
+  );
 
   /// Measures after every frame while mounted, not only after this widget
   /// rebuilds: ancestors can move it (a page transition, a swipe in a
@@ -82,8 +94,15 @@ class _DuoLayoutBuilderState extends State<DuoLayoutBuilder> {
     final box = context.findRenderObject();
     if (box is! RenderBox || !box.attached) return;
     final origin = box.localToGlobal(Offset.zero);
-    if ((origin.dx - _origin.dx).abs() > _originTolerance ||
-        (origin.dy - _origin.dy).abs() > _originTolerance) {
+    if ((origin.dx - _origin.dx).abs() <= _originTolerance &&
+        (origin.dy - _origin.dy).abs() <= _originTolerance) {
+      return;
+    }
+    // Moving along the hinge (under an app bar in landscape, during a
+    // vertical slide) leaves the panes unchanged: no need to rebuild.
+    if (_compute(origin) == _layout) {
+      _origin = origin;
+    } else {
       setState(() => _origin = origin);
     }
   }

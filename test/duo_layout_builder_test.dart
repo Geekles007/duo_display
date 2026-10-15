@@ -411,4 +411,41 @@ void main() {
     await tester.pump();
     expect(find.byKey(_secondKey), findsNothing);
   });
+
+  testWidgets('a move that keeps the same panes does not rebuild', (
+    tester,
+  ) async {
+    setView(tester, _landscape);
+    var builds = 0;
+    // Under an app bar in landscape, the measured origin moves down by the
+    // app bar's height, which does not change the panes around a vertical
+    // hinge.
+    await tester.pumpWidget(
+      MediaQuery(
+        data: MediaQueryData(
+          size: _landscape,
+          displayFeatures: features('book'),
+        ),
+        child: MaterialApp(
+          home: Scaffold(
+            appBar: AppBar(),
+            body: DuoLayoutBuilder(
+              builder: (context, layout) {
+                builds++;
+                return layout.place(
+                  first: Container(key: _firstKey),
+                  second: Container(key: _secondKey),
+                );
+              },
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.pump();
+
+    expect(builds, 1);
+    expectOnTheFold(tester);
+  });
 }
