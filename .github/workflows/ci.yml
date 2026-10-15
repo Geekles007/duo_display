@@ -1,0 +1,35 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  analyze-and-test:
+    # The Dart side builds and tests on Linux. The iOS build needs Xcode 27.1
+    # and is checked locally (see README, "Testing on the simulator").
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.44.8
+          channel: stable
+          cache: true
+
+      - name: Get dependencies
+        run: |
+          flutter pub get
+          (cd example && flutter pub get)
+
+      - name: Analyze
+        run: flutter analyze
+
+      - name: Test the plugin
+        run: flutter test
+
+      - name: Test the example
+        working-directory: example
+        run: flutter test
