@@ -1,6 +1,6 @@
 name: duo_display
 description: "Foldable iPhone Duo support for Flutter: hinge, device posture and camera cutouts from iOS 27.1 in MediaQuery.displayFeatures, plus a two-pane layout builder."
-version: 1.0.0
+version: 1.0.1
 homepage: https://github.com/Geekles007/duo_display
 repository: https://github.com/Geekles007/duo_display
 issue_tracker: https://github.com/Geekles007/duo_display/issues

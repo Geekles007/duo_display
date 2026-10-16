@@ -13,6 +13,12 @@ List<DisplayFeature> features(String fixture) => displayFeaturesOf(
   includeCutouts: true,
 );
 
+/// The fold of a flat fixture, as `DuoDisplayFeatures` hands it to the
+/// builder (display features leave it out).
+List<DisplayFeature> flat(String fixture) => [
+  flatFoldOf(geometryFromMessage(probeFixture(fixture)))!,
+];
+
 DuoLayout compute(
   List<DisplayFeature> displayFeatures, {
   Rect area = const Rect.fromLTWH(0, 0, 951, 669),
@@ -43,7 +49,7 @@ void main() {
   });
 
   test('flat does not split by default', () {
-    final layout = compute(features('open'));
+    final layout = compute(flat('open'));
 
     expect(layout.isSplit, isFalse);
     expect(layout.axis, isNull);
@@ -54,16 +60,16 @@ void main() {
 
   test('flat splits with splitWhenFlat', () {
     final book = compute(features('book'));
-    final flat = compute(features('open'), splitWhenFlat: true);
+    final open = compute(flat('open'), splitWhenFlat: true);
 
-    expect(flat.first, book.first);
-    expect(flat.second, book.second);
-    expect(flat.hinge, book.hinge);
+    expect(open.first, book.first);
+    expect(open.second, book.second);
+    expect(open.hinge, book.hinge);
   });
 
   test('flat portrait stacks with splitWhenFlat', () {
     final layout = compute(
-      features('open_rotated'),
+      flat('open_rotated'),
       area: _portrait,
       splitWhenFlat: true,
     );
@@ -94,7 +100,7 @@ void main() {
 
   test('right-to-left keeps stacked panes top first', () {
     DuoLayout stacked(TextDirection direction) => compute(
-      features('open_rotated'),
+      flat('open_rotated'),
       area: _portrait,
       textDirection: direction,
       splitWhenFlat: true,
