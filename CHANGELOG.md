@@ -1,3 +1,16 @@
+## 1.0.1
+
+* Fix: on a flat iPhone Duo, dialogs, bottom sheets and menus stayed on one
+  half of the screen. `DuoDisplayFeatures` no longer reports the fold while
+  the device is flat: iOS marks it inactive, and Flutter treats any display
+  feature of non-zero width as an obstacle, whatever its state.
+* The fold is reported as `DisplayFeatureType.fold` instead of `hinge`: the
+  inner display is one continuous panel, as on Android book-style foldables.
+  Code that looks for `DisplayFeatureType.hinge` should also accept `fold`.
+* `DuoLayoutBuilder(splitWhenFlat: true)` still splits a flat iPhone Duo:
+  `DuoDisplayFeatures` hands it the fold directly, outside
+  `MediaQuery.displayFeatures`. Its panes are unchanged.
+
 ## 1.0.0
 
 * `DuoLayoutBuilder` hands its builder a `DuoLayout`: the two panes on either
