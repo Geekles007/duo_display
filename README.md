@@ -23,7 +23,7 @@ iOS 27.1 and puts them where your Flutter code already looks.
 | Closed | Book (partially open) | Open (flat) |
 | --- | --- | --- |
 | ![Outer screen of the closed iPhone Duo: the camera is reported as a cutout](doc/screenshots/closed.png) | ![Book posture: a dialog opens on the left half, next to the hinge](doc/screenshots/book_dialog.png) | ![Inner screen, flat: the hinge band crosses the screen](doc/screenshots/open.png) |
-| Outer screen. The camera is reported as a `cutout`; there is no hinge. | Inner screen, partially open. A standard Flutter dialog opens on one side of the hinge, with no iPhone-specific code. | Inner screen, flat. The hinge is reported as `postureFlat`. |
+| Outer screen. The camera is reported as a `cutout`; there is no hinge. | Inner screen, partially open. A standard Flutter dialog opens on one side of the fold, with no iPhone-specific code. | Inner screen, flat. The overlay paints the fold from the geometry, but no display feature is reported, so dialogs can span the screen. |
 
 Screenshots of the [example app](https://github.com/Geekles007/duo_display/tree/main/example)
 on the iPhone Duo simulator (iOS 27.1). Its overlay paints what duo_display
@@ -41,7 +41,7 @@ geometry is only available through native UIKit APIs introduced in iOS 27.1.
 duo_display reads that native geometry and feeds it into the Flutter APIs you
 already use:
 
-- **Reuse familiar Flutter APIs.** The hinge and cameras land in
+- **Reuse familiar Flutter APIs.** The fold and cameras land in
   `MediaQuery.displayFeatures`, the same list Flutter uses on Android.
 - **Build hinge-aware interfaces.** Know where the hinge is and whether the
   device is half opened or flat.
@@ -63,7 +63,7 @@ already use:
 | Active screen | Whether the app runs on the `outer` or the `inner` screen. |
 | Camera cutouts | Active camera areas, also reported as `cutout` display features. |
 | Status bar regions | The areas the system status bar reserves, as a column or a band. |
-| MediaQuery integration | `DuoDisplayFeatures` adds the hinge and cameras to `MediaQuery.displayFeatures`. |
+| MediaQuery integration | `DuoDisplayFeatures` adds the fold, in Book posture, and the cameras to `MediaQuery.displayFeatures`. |
 | Geometry stream | `DuoDisplay.geometry`, a broadcast stream that replays the last geometry to new listeners. |
 | Two-pane layout | `DuoLayoutBuilder` splits an area into two panes on either side of the hinge, in its own coordinates. |
 
@@ -105,24 +105,26 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp(home: HingePage());
+    return const MaterialApp(home: FoldPage());
   }
 }
 
-class HingePage extends StatelessWidget {
-  const HingePage({super.key});
+class FoldPage extends StatelessWidget {
+  const FoldPage({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final hinge = MediaQuery.displayFeaturesOf(context)
-        .where((feature) => feature.type == DisplayFeatureType.hinge)
+    final fold = MediaQuery.displayFeaturesOf(context)
+        .where((feature) =>
+            feature.type == DisplayFeatureType.fold ||
+            feature.type == DisplayFeatureType.hinge)
         .firstOrNull;
     return Scaffold(
       body: Center(
         child: Text(
-          hinge == null
-              ? 'No hinge on this screen'
-              : 'Hinge at ${hinge.bounds} (${hinge.state.name})',
+          fold == null
+              ? 'No fold on this screen'
+              : 'Fold at ${fold.bounds} (${fold.state.name})',
         ),
       ),
     );
@@ -130,9 +132,10 @@ class HingePage extends StatelessWidget {
 }
 ```
 
-On an iPhone Duo in Book posture, this shows the hinge band and
-`postureHalfOpened`. Closed, on another device or on another platform, it
-shows "No hinge on this screen".
+On an iPhone Duo in Book posture, this shows the fold band and
+`postureHalfOpened`. Flat, closed or on a device without a fold, it shows
+"No fold on this screen". On Android foldables, the features Flutter reports
+itself show up the same way.
 
 ## How It Works
 
@@ -162,14 +165,15 @@ Your widgets
   the raw snapshot to Dart.
 - **Flutter integration.** The Dart side turns it into a `DuoGeometry`
   (posture, hinge, cutouts…), exposes it through `DuoDisplay`, and
-  `DuoDisplayFeatures` writes the hinge and cameras into
+  `DuoDisplayFeatures` writes the fold, in Book posture, and the cameras into
   `MediaQuery.displayFeatures`.
 
 ## Usage Examples
 
 duo_display never rearranges your screens on its own. Widgets that already
-read `MediaQuery.displayFeatures` adapt by themselves: dialogs, bottom sheets
-and menus open on one side of the hinge. For your own screens,
+read `MediaQuery.displayFeatures` adapt by themselves: in Book posture,
+dialogs, bottom sheets and menus open on one side of the fold. For your own
+screens,
 `DuoLayoutBuilder` (example F) hands you the two panes; examples A to E read
 the underlying information.
 
@@ -182,7 +186,8 @@ for (final feature in MediaQuery.displayFeaturesOf(context)) {
 ```
 
 In Book posture, in landscape, this prints
-`hinge postureHalfOpened Rect.fromLTRB(455.5, 0.0, 495.5, 669.0)`.
+`fold postureHalfOpened Rect.fromLTRB(455.5, 0.0, 495.5, 669.0)`. Flat, it
+prints nothing for the fold.
 
 ### B. Detecting device posture
 
@@ -253,8 +258,9 @@ Widget hingeLabel(DuoGeometry geometry) {
 ```
 
 On the inner screen in Book posture, this shows a 40 pt band at about 128°.
-The same band is in `MediaQuery.displayFeatures` as a `hinge`, with
-`postureHalfOpened` in Book and `postureFlat` when open.
+In Book, the same band is in `MediaQuery.displayFeatures` as a `fold` with
+`postureHalfOpened`. When the device is flat it stays in the geometry but is
+not reported as a display feature, so dialogs and sheets can span the screen.
 
 ### E. Working with camera cutouts
 
@@ -302,8 +308,9 @@ else, use `isSplit`, `axis`, `first`, `second` and `hinge` directly.
 - Rectangles are in logical pixels, relative to the builder, wherever it sits
   on screen.
 - The builder reads `MediaQuery.displayFeatures`. On iOS, `DuoDisplayFeatures`
-  must be above it; on Android foldables, Flutter reports display features
-  itself, so the same code splits there too.
+  must be above it: it also hands the builder the fold of a flat device, which
+  display features leave out, for `splitWhenFlat`. On Android foldables,
+  Flutter reports display features itself, so the same code splits there too.
 - It measures where it sits after every frame, so it follows page
   transitions and swipes and lands on the fold once they stop. The very first
   frame assumes the top left corner of the screen: when the builder sits
@@ -319,8 +326,8 @@ else, use `isSplit`, `axis`, `first`, `second` and `hinge` directly.
 | Posture | Description | Display Features |
 | --- | --- | --- |
 | `DuoPosture.closed` | Folded. The app runs on the outer screen (466×678 pt). | The outer camera as a `cutout`, state `unknown`. No hinge. |
-| `DuoPosture.book` | Partially open, like a book. The app runs on the inner screen (951×669 pt in landscape). | The hinge band as a `hinge`, state `postureHalfOpened`. |
-| `DuoPosture.open` | Open as far as the device allows: flat. Inner screen. | The hinge band as a `hinge`, state `postureFlat`. |
+| `DuoPosture.book` | Partially open, like a book. The app runs on the inner screen (951×669 pt in landscape). | The fold band as a `fold`, state `postureHalfOpened`. |
+| `DuoPosture.open` | Open as far as the device allows: flat. Inner screen. | No fold: the inner display is continuous and iOS marks the fold inactive, so dialogs can span the screen. `DuoLayoutBuilder` still gets it for `splitWhenFlat`. |
 | `DuoPosture.unsupported` | Not an iPhone Duo, iOS older than 27.1, another platform, or no data yet. | Nothing is added. |
 
 `DuoGeometry.screen` says which screen hosts the Flutter view: `outer`,
@@ -416,7 +423,8 @@ is a list and detail app wrapped in `DuoDisplayFeatures`. It shows:
 - an overlay that paints the hinge (amber), cameras (red) and status bar
   areas (blue), with a card listing every `DuoGeometry` value and the display
   features Flutter sees;
-- dialog and bottom sheet buttons, to see them open on one side of the hinge.
+- dialog and bottom sheet buttons, to see them open on one side of the fold
+  in Book, and across the whole screen when flat.
 
 ![The example app in Book posture: the list on the left of the hinge, the selected item on the right](doc/screenshots/book_split.png)
 
@@ -431,7 +439,8 @@ flutter run -d Duo-27.1
 
 **Implemented**
 
-- `DuoDisplayFeatures`: the hinge and cameras in `MediaQuery.displayFeatures`.
+- `DuoDisplayFeatures`: the fold (in Book) and cameras in
+  `MediaQuery.displayFeatures`.
 - `DuoDisplay`: geometry stream, `current()` and `isSupported`.
 - `DuoGeometry`: posture, hinge angle, active screen, hinge band, cutouts,
   status bar areas, vertical bars and split view.

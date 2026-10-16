@@ -2,8 +2,9 @@ import 'package:duo_display/duo_display.dart';
 import 'package:duo_display_example/geometry_overlay.dart';
 import 'package:flutter/material.dart';
 
-// DuoDisplayFeatures reports the hinge in MediaQuery.displayFeatures, so the
-// dialogs and bottom sheets below avoid it without any iPhone Duo code.
+// DuoDisplayFeatures reports the fold in MediaQuery.displayFeatures in Book
+// posture, so the dialogs and bottom sheets below avoid it without any
+// iPhone Duo code. Flat, they can span the whole screen.
 void main() => runApp(const DuoDisplayFeatures(child: ExampleApp()));
 
 class ExampleApp extends StatelessWidget {
@@ -148,7 +149,8 @@ Future<void> showExampleDialog(BuildContext context) => showDialog<void>(
   builder: (context) => AlertDialog(
     title: const Text('Dialog'),
     content: const Text(
-      'On the inner screen, this opens on one side of the hinge.',
+      'In Book posture, this opens on one side of the fold. Flat, it can '
+      'span the whole screen.',
     ),
     actions: [
       TextButton(
