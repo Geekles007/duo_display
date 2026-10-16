@@ -1,5 +1,6 @@
 import 'dart:ui' show DisplayFeature, DisplayFeatureState, DisplayFeatureType;
 
+import 'package:duo_display/src/duo_display_features.dart';
 import 'package:flutter/widgets.dart';
 import 'package:meta/meta.dart';
 
@@ -11,8 +12,10 @@ import 'package:meta/meta.dart';
 /// screen.
 ///
 /// The hinge comes from `MediaQuery.displayFeatures`. On iOS, place
-/// `DuoDisplayFeatures` above this widget; on Android foldables, Flutter
-/// reports display features itself.
+/// `DuoDisplayFeatures` above this widget: it reports the fold in Book
+/// posture, and hands this widget the fold of a flat device, which display
+/// features leave out. On Android foldables, Flutter reports display features
+/// itself.
 ///
 /// The widget measures where it sits after each frame. The very first frame
 /// assumes the top left corner of the screen: when the widget sits elsewhere,
@@ -57,7 +60,11 @@ class _DuoLayoutBuilderState extends State<DuoLayoutBuilder> {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        _displayFeatures = MediaQuery.displayFeaturesOf(context);
+        final flatFold = FlatFoldScope.of(context);
+        _displayFeatures = [
+          ...MediaQuery.displayFeaturesOf(context),
+          ?flatFold,
+        ];
         _size = constraints.biggest;
         _textDirection = Directionality.of(context);
         final layout = _layout = _compute(_origin);

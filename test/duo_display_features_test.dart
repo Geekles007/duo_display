@@ -49,11 +49,11 @@ void main() {
     return seen;
   }
 
-  testWidgets('book: a half-opened hinge', (tester) async {
+  testWidgets('book: a half-opened fold', (tester) async {
     expect(await featuresSeen(tester, geometry: fixture('book')), const [
       DisplayFeature(
         bounds: _hingeLandscape,
-        type: DisplayFeatureType.hinge,
+        type: DisplayFeatureType.fold,
         state: DisplayFeatureState.postureHalfOpened,
       ),
     ]);
@@ -69,16 +69,52 @@ void main() {
     expect(features.single.state, DisplayFeatureState.postureHalfOpened);
   });
 
-  testWidgets('open: a flat hinge, and no cutout (inner camera inactive)', (
-    tester,
-  ) async {
-    expect(await featuresSeen(tester, geometry: fixture('open')), const [
-      DisplayFeature(
-        bounds: _hingeLandscape,
-        type: DisplayFeatureType.hinge,
-        state: DisplayFeatureState.postureFlat,
+  testWidgets('open: nothing while flat, and no cutout (inner camera '
+      'inactive)', (tester) async {
+    expect(await featuresSeen(tester, geometry: fixture('open')), isEmpty);
+    expect(
+      await featuresSeen(tester, geometry: fixture('open_rotated')),
+      isEmpty,
+    );
+  });
+
+  testWidgets('the flat fold only reaches FlatFoldScope', (tester) async {
+    final geometry = StreamController<DuoGeometry>();
+    addTearDown(geometry.close);
+    DisplayFeature? flatFold;
+    await tester.pumpWidget(
+      MediaQuery(
+        data: const MediaQueryData(size: Size(951, 669)),
+        child: GeometryDisplayFeatures(
+          geometry: geometry.stream,
+          includeCutouts: true,
+          child: Builder(
+            builder: (context) {
+              flatFold = FlatFoldScope.of(context);
+              return const SizedBox();
+            },
+          ),
+        ),
       ),
-    ]);
+    );
+
+    for (final (pose, expected) in [
+      (
+        'open',
+        const DisplayFeature(
+          bounds: _hingeLandscape,
+          type: DisplayFeatureType.fold,
+          state: DisplayFeatureState.postureFlat,
+        ),
+      ),
+      ('book', null),
+      ('closed', null),
+    ]) {
+      geometry.add(fixture(pose));
+      await tester.pump();
+      await tester.pump();
+      expect(flatFold, expected, reason: pose);
+    }
   });
 
   testWidgets('closed: the outer camera as a cutout, no hinge', (
@@ -122,7 +158,9 @@ void main() {
     expect(await featuresSeen(tester), isEmpty);
   });
 
-  testWidgets('a dialog opens on one side of the hinge', (tester) async {
+  /// Opens an [AlertDialog] in a landscape inner screen posed as [pose] and
+  /// returns where it lands.
+  Future<Rect> dialogRect(WidgetTester tester, String pose) async {
     tester.view
       ..physicalSize = const Size(951, 669)
       ..devicePixelRatio = 1;
@@ -130,7 +168,7 @@ void main() {
 
     await tester.pumpWidget(
       GeometryDisplayFeatures(
-        geometry: Stream.value(fixture('book')),
+        geometry: Stream.value(fixture(pose)),
         includeCutouts: true,
         child: MaterialApp(
           home: Builder(
@@ -150,9 +188,18 @@ void main() {
     await tester.pump();
     await tester.tap(find.text('Open dialog'));
     await tester.pumpAndSettle();
+    return tester.getRect(find.byType(AlertDialog));
+  }
 
-    final dialog = tester.getRect(find.byType(AlertDialog));
+  testWidgets('book: a dialog opens on one side of the fold', (tester) async {
+    final dialog = await dialogRect(tester, 'book');
     expect(dialog.right, lessThanOrEqualTo(_hingeLandscape.left));
+  });
+
+  testWidgets('flat: a dialog can span the screen', (tester) async {
+    final dialog = await dialogRect(tester, 'open');
+    expect(dialog.left, lessThan(_hingeLandscape.left));
+    expect(dialog.right, greaterThan(_hingeLandscape.right));
   });
 
   testWidgets('DuoDisplayFeatures reads the geometry from the host', (
@@ -184,7 +231,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(seen.single.type, DisplayFeatureType.hinge);
+    expect(seen.single.type, DisplayFeatureType.fold);
     expect(seen.single.state, DisplayFeatureState.postureHalfOpened);
   });
 

@@ -5,13 +5,15 @@ import 'package:duo_display/src/duo_geometry.dart';
 import 'package:flutter/widgets.dart';
 import 'package:meta/meta.dart';
 
-/// Reports the iPhone Duo hinge and camera cutouts in
+/// Reports the iPhone Duo fold and camera cutouts in
 /// `MediaQuery.displayFeatures` for [child], the way Flutter already reports
 /// them on Android foldables.
 ///
-/// Widgets that read display features then work unchanged: dialogs, bottom
-/// sheets and menus (through `DisplayFeatureSubScreen`) open on one side of
-/// the hinge instead of across it.
+/// Widgets that read display features then work unchanged: in Book posture,
+/// dialogs, bottom sheets and menus (through `DisplayFeatureSubScreen`) open
+/// on one side of the fold instead of across it. When the device is flat the
+/// fold is not reported, so they can span the whole screen; it is still
+/// handed to `DuoLayoutBuilder` for `splitWhenFlat`.
 ///
 /// Place it above `MaterialApp` or `CupertinoApp`:
 ///
@@ -33,7 +35,7 @@ class DuoDisplayFeatures extends StatelessWidget {
   final Widget child;
 
   /// Whether active camera areas are reported as
-  /// [DisplayFeatureType.cutout], in addition to the hinge.
+  /// [DisplayFeatureType.cutout], in addition to the fold.
   final bool includeCutouts;
 
   @override
@@ -83,32 +85,37 @@ class GeometryDisplayFeatures extends StatelessWidget {
           data: keep
               ? mediaQuery
               : mediaQuery.copyWith(displayFeatures: features),
-          child: child,
+          child: FlatFoldScope(
+            fold: geometry == null ? null : flatFoldOf(geometry),
+            child: child,
+          ),
         );
       },
     );
   }
 }
 
-/// The display features of [geometry]: the hinge band while the Flutter view
-/// is on the inner screen, and, when [includeCutouts] is true, every active
-/// camera area. Status columns are not display features: they stay available
-/// in [DuoGeometry.statusColumns].
+/// The display features of [geometry]: the fold while the device is in Book
+/// posture, and, when [includeCutouts] is true, every active camera area.
+/// Status columns are not display features: they stay available in
+/// [DuoGeometry.statusColumns].
+///
+/// The band is a [DisplayFeatureType.fold], not a hinge: the inner display is
+/// one continuous panel, as on Android book-style foldables. It is left out
+/// while the device is flat: iOS then marks it inactive, and Flutter treats
+/// any feature of non-zero width as an obstacle whatever its state
+/// (`DisplayFeatureSubScreen.avoidBounds`), so reporting it would keep
+/// dialogs on one half of a flat screen.
 @internal
 List<DisplayFeature> displayFeaturesOf(
   DuoGeometry geometry, {
   required bool includeCutouts,
 }) => [
-  if (geometry.hinge case final hinge?)
+  if ((geometry.posture, geometry.hinge) case (DuoPosture.book, final hinge?))
     DisplayFeature(
       bounds: hinge,
-      type: DisplayFeatureType.hinge,
-      state: switch (geometry.posture) {
-        DuoPosture.book => DisplayFeatureState.postureHalfOpened,
-        DuoPosture.open => DisplayFeatureState.postureFlat,
-        DuoPosture.closed ||
-        DuoPosture.unsupported => DisplayFeatureState.unknown,
-      },
+      type: DisplayFeatureType.fold,
+      state: DisplayFeatureState.postureHalfOpened,
     ),
   if (includeCutouts)
     for (final cutout in geometry.cutouts)
@@ -118,3 +125,35 @@ List<DisplayFeature> displayFeaturesOf(
         state: DisplayFeatureState.unknown,
       ),
 ];
+
+/// The fold of a flat device, or null in any other posture. It never reaches
+/// `MediaQuery.displayFeatures` (see [displayFeaturesOf]); it only lets
+/// `DuoLayoutBuilder` split a flat device when asked to.
+@internal
+DisplayFeature? flatFoldOf(DuoGeometry geometry) =>
+    switch ((geometry.posture, geometry.hinge)) {
+      (DuoPosture.open, final hinge?) => DisplayFeature(
+        bounds: hinge,
+        type: DisplayFeatureType.fold,
+        state: DisplayFeatureState.postureFlat,
+      ),
+      _ => null,
+    };
+
+/// Hands the fold of a flat device to `DuoLayoutBuilder` without exposing it
+/// to the rest of Flutter.
+@internal
+class FlatFoldScope extends InheritedWidget {
+  /// Creates the scope.
+  const FlatFoldScope({required this.fold, required super.child, super.key});
+
+  /// The fold of a flat device, or null.
+  final DisplayFeature? fold;
+
+  /// The nearest flat fold above [context], or null.
+  static DisplayFeature? of(BuildContext context) =>
+      context.dependOnInheritedWidgetOfExactType<FlatFoldScope>()?.fold;
+
+  @override
+  bool updateShouldNotify(FlatFoldScope oldWidget) => fold != oldWidget.fold;
+}

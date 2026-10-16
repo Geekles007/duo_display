@@ -18,9 +18,9 @@ List<DisplayFeature> features(String fixture) => displayFeaturesOf(
 
 const _landscape = Size(951, 669);
 const _portrait = Size(669, 951);
-const _portraitBookHinge = DisplayFeature(
+const _portraitBookFold = DisplayFeature(
   bounds: Rect.fromLTWH(0, 455.5, 669, 40),
-  type: DisplayFeatureType.hinge,
+  type: DisplayFeatureType.fold,
   state: DisplayFeatureState.postureHalfOpened,
 );
 
@@ -114,7 +114,7 @@ void main() {
       MediaQuery(
         data: const MediaQueryData(
           size: _portrait,
-          displayFeatures: [_portraitBookHinge],
+          displayFeatures: [_portraitBookFold],
         ),
         child: MaterialApp(
           home: Scaffold(
@@ -208,24 +208,73 @@ void main() {
     expect(last.isSplit, isFalse);
   });
 
-  testWidgets('splitWhenFlat toggles at runtime', (tester) async {
+  testWidgets('splitWhenFlat splits a flat iPhone Duo, toggled at runtime', (
+    tester,
+  ) async {
     setView(tester, _landscape);
-    Future<void> split({required bool whenFlat}) => tester.pumpWidget(
-      atRoot(
-        size: _landscape,
-        displayFeatures: features('open'),
-        splitWhenFlat: whenFlat,
-      ),
-    );
+    final open = geometryFromMessage(probeFixture('open'));
+    var seen = <DisplayFeature>[];
+    Future<void> split({required bool whenFlat}) async {
+      await tester.pumpWidget(
+        MediaQuery(
+          data: const MediaQueryData(size: _landscape),
+          child: GeometryDisplayFeatures(
+            geometry: Stream.value(open),
+            includeCutouts: true,
+            child: Directionality(
+              textDirection: TextDirection.ltr,
+              child: DuoLayoutBuilder(
+                splitWhenFlat: whenFlat,
+                builder: (context, layout) {
+                  seen = MediaQuery.displayFeaturesOf(context);
+                  return layout.place(
+                    first: Container(key: _firstKey),
+                    second: Container(key: _secondKey),
+                  );
+                },
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+    }
 
     await split(whenFlat: false);
     expect(find.byKey(_secondKey), findsNothing);
 
     await split(whenFlat: true);
     expect(tester.getRect(find.byKey(_secondKey)).left, 495.5);
+    // The fold reached the builder without becoming a display feature.
+    expect(seen, isEmpty);
 
     await split(whenFlat: false);
     expect(find.byKey(_secondKey), findsNothing);
+  });
+
+  testWidgets('splitWhenFlat splits a flat Android fold', (tester) async {
+    setView(tester, _landscape);
+    // What Flutter reports for a book-style Android foldable lying flat.
+    const fold = DisplayFeature(
+      bounds: Rect.fromLTWH(475.5, 0, 0, 669),
+      type: DisplayFeatureType.fold,
+      state: DisplayFeatureState.postureFlat,
+    );
+
+    await tester.pumpWidget(
+      atRoot(size: _landscape, displayFeatures: const [fold]),
+    );
+    expect(find.byKey(_secondKey), findsNothing);
+
+    await tester.pumpWidget(
+      atRoot(
+        size: _landscape,
+        displayFeatures: const [fold],
+        splitWhenFlat: true,
+      ),
+    );
+    expect(tester.getRect(find.byKey(_firstKey)).right, 475.5);
+    expect(tester.getRect(find.byKey(_secondKey)).left, 475.5);
   });
 
   testWidgets('swaps panes when the text direction flips', (tester) async {
@@ -253,7 +302,7 @@ void main() {
 
     setView(tester, _portrait);
     await tester.pumpWidget(
-      atRoot(size: _portrait, displayFeatures: const [_portraitBookHinge]),
+      atRoot(size: _portrait, displayFeatures: const [_portraitBookFold]),
     );
 
     expect(
